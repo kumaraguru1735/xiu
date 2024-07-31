@@ -10,6 +10,8 @@ mod tests {
     use std::fs::File;
     use std::io::prelude::*;
     use std::time::Instant;
+    use crate::hls::errors::MediaError;
+    use crate::hls::flv2hls::Flv2HlsRemuxer;
 
     #[allow(dead_code)]
     pub fn print(data: BytesMut) {
@@ -52,7 +54,7 @@ mod tests {
     #[allow(dead_code)]
     fn test_flv2hls() -> Result<(), MediaError> {
         let mut file =
-            File::open("/Users/zexu/github/xiu/protocol/hls/src/xgplayer_demo.flv").unwrap();
+            File::open("/Users/zexu/github/xiu/protocol/http/src/xgplayer_demo.flv").unwrap();
         let mut contents = Vec::new();
 
         file.read_to_end(&mut contents)?;

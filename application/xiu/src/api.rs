@@ -77,7 +77,7 @@ impl ApiService {
             Ok(dat_val) => {
                 let api_response = ApiResponse {
                     error_code: 0,
-                    desp: String::from("succ"),
+                    desp: String::from("success"),
                     data: dat_val,
                 };
                 Json(api_response)
@@ -116,7 +116,7 @@ impl ApiService {
             Ok(dat_val) => {
                 let api_response = ApiResponse {
                     error_code: 0,
-                    desp: String::from("succ"),
+                    desp: String::from("success"),
                     data: dat_val,
                 };
                 Json(api_response)
@@ -167,10 +167,7 @@ pub async fn run(producer: StreamHubEventSender, port: usize) {
 
     let api_kick_off = api.clone();
     let kick_off = move |Json(id): Json<KickOffClient>| async move {
-        match api_kick_off.kick_off_client(id).await {
-            Ok(response) => response,
-            Err(_) => "error".to_owned(),
-        }
+        api_kick_off.kick_off_client(id).await.unwrap_or_else(|_| "error".to_owned())
     };
 
     let app = Router::new()

@@ -9,8 +9,6 @@ use std::vec::Vec;
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     pub rtmp: Option<RtmpConfig>,
-    pub rtsp: Option<RtspConfig>,
-    pub webrtc: Option<WebRTCConfig>,
     pub httpflv: Option<HttpFlvConfig>,
     pub hls: Option<HlsConfig>,
     pub httpapi: Option<HttpApiConfig>,
@@ -22,8 +20,6 @@ pub struct Config {
 impl Config {
     pub fn new(
         rtmp_port: usize,
-        rtsp_port: usize,
-        webrtc_port: usize,
         httpflv_port: usize,
         hls_port: usize,
         log_level: String,
@@ -40,23 +36,6 @@ impl Config {
             });
         }
 
-        let mut rtsp_config: Option<RtspConfig> = None;
-        if rtsp_port > 0 {
-            rtsp_config = Some(RtspConfig {
-                enabled: true,
-                port: rtsp_port,
-                auth: None,
-            });
-        }
-
-        let mut webrtc_config: Option<WebRTCConfig> = None;
-        if webrtc_port > 0 {
-            webrtc_config = Some(WebRTCConfig {
-                enabled: true,
-                port: webrtc_port,
-                auth: None,
-            });
-        }
 
         let mut httpflv_config: Option<HttpFlvConfig> = None;
         if httpflv_port > 0 {
@@ -84,8 +63,6 @@ impl Config {
 
         Self {
             rtmp: rtmp_config,
-            rtsp: rtsp_config,
-            webrtc: webrtc_config,
             httpflv: httpflv_config,
             hls: hls_config,
             httpapi: None,
@@ -116,20 +93,6 @@ pub struct RtmpPushConfig {
     pub enabled: bool,
     pub address: String,
     pub port: usize,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct RtspConfig {
-    pub enabled: bool,
-    pub port: usize,
-    pub auth: Option<AuthConfig>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct WebRTCConfig {
-    pub enabled: bool,
-    pub port: usize,
-    pub auth: Option<AuthConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
