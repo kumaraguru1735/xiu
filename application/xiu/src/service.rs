@@ -1,5 +1,4 @@
 use commonlib::auth::AuthType;
-use rtmp::remuxer::RtmpRemuxer;
 use std::sync::Arc;
 use crate::config::{AuthConfig, AuthSecretConfig};
 
@@ -80,7 +79,6 @@ impl Service {
         self.start_hls(&mut stream_hub).await?;
         self.start_rtmp(&mut stream_hub).await?;
         self.start_http_api_server(&mut stream_hub).await?;
-        self.start_rtmp_remuxer(&mut stream_hub).await?;
 
         tokio::spawn(async move {
             stream_hub.run().await;
@@ -184,31 +182,6 @@ impl Service {
             });
         }
 
-        Ok(())
-    }
-
-    async fn start_rtmp_remuxer(&mut self, stream_hub: &mut StreamsHub) -> Result<()> {
-
-        let mut rtmp_enabled: bool = false;
-        if let Some(rtmp_cfg_value) = &self.cfg.rtmp {
-            if rtmp_cfg_value.enabled {
-                rtmp_enabled = true;
-            }
-        }
-        if !rtmp_enabled {
-            return Ok(());
-        }
-
-        let event_producer = stream_hub.get_hub_event_sender();
-        let broadcast_event_receiver = stream_hub.get_client_event_consumer();
-        let mut remuxer = RtmpRemuxer::new(broadcast_event_receiver, event_producer);
-        stream_hub.set_rtmp_remuxer_enabled(true);
-
-        tokio::spawn(async move {
-            if let Err(err) = remuxer.run().await {
-                log::error!("rtmp remuxer server error: {}", err);
-            }
-        });
         Ok(())
     }
 

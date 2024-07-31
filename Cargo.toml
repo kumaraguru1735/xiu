@@ -11,5 +11,5 @@ members = [
   "library/codec/h264",
   "library/logger",
   "library/streamhub",
-  "library/common", "protocol/http",
+  "library/common",
 ]

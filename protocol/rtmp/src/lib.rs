@@ -22,6 +22,5 @@ pub mod relay;
 pub mod rtmp;
 pub mod session;
 // pub mod statistics;
-pub mod remuxer;
 pub mod user_control_messages;
 pub mod utils;
