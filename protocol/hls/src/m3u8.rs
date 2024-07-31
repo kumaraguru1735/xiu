@@ -66,7 +66,7 @@ impl M3u8 {
         let m3u8_folder = format!("./{app_name}/{stream_name}");
         fs::create_dir_all(m3u8_folder.clone()).unwrap();
 
-        let live_m3u8_name = format!("{stream_name}.m3u8");
+        let live_m3u8_name = "index.m3u8".to_string();
         let vod_m3u8_name = if need_record {
             format!("vod_{stream_name}.m3u8")
         } else {
