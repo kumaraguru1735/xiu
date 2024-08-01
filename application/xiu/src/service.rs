@@ -75,8 +75,7 @@ impl Service {
 
         let mut stream_hub = StreamsHub::new(notifier);
 
-        self.start_httpflv(&mut stream_hub).await?;
-        self.start_hls(&mut stream_hub).await?;
+        self.start_http(&mut stream_hub).await?;
         self.start_rtmp(&mut stream_hub).await?;
         self.start_http_api_server(&mut stream_hub).await?;
 
@@ -185,32 +184,11 @@ impl Service {
         Ok(())
     }
 
-    async fn start_httpflv(&mut self, stream_hub: &mut StreamsHub) -> Result<()> {
-        let httpflv_cfg = &self.cfg.httpflv;
+    async fn start_http(&mut self, stream_hub: &mut StreamsHub) -> Result<()> {
+        let hls_cfg = &self.cfg.http;
 
-        if let Some(httpflv_cfg_value) = httpflv_cfg {
-            if !httpflv_cfg_value.enabled {
-                return Ok(());
-            }
-            let port = httpflv_cfg_value.port;
-            let event_producer = stream_hub.get_hub_event_sender();
-
-            let auth = Self::gen_auth(&httpflv_cfg_value.auth, &self.cfg.authsecret);
-            tokio::spawn(async move {
-                if let Err(err) = http_server::run(event_producer,port, auth).await {
-                    log::error!("httpflv server error: {}", err);
-                }
-            });
-        }
-
-        Ok(())
-    }
-
-    async fn start_hls(&mut self, stream_hub: &mut StreamsHub) -> Result<()> {
-        let hls_cfg = &self.cfg.hls;
-
-        if let Some(hls_cfg_value) = hls_cfg {
-            if !hls_cfg_value.enabled {
+        if let Some(http_cfg_value) = hls_cfg {
+            if !http_cfg_value.enabled {
                 return Ok(());
             }
 
@@ -219,7 +197,7 @@ impl Service {
             let mut hls_remuxer = HlsRemuxer::new(
                 cient_event_consumer,
                 event_producer.clone(),
-                hls_cfg_value.need_record,
+                http_cfg_value.need_record,
             );
 
             tokio::spawn(async move {
@@ -228,11 +206,11 @@ impl Service {
                 }
             });
 
-            let port = hls_cfg_value.port;
-            let auth = Self::gen_auth(&hls_cfg_value.auth, &self.cfg.authsecret);
+            let port = http_cfg_value.port;
+            let auth = Self::gen_auth(&http_cfg_value.auth, &self.cfg.authsecret);
             tokio::spawn(async move {
                 if let Err(err) = http_server::run(event_producer.clone(),port, auth).await {
-                    log::error!("hls server error: {}", err);
+                    log::error!("http server error: {}", err);
                 }
             });
             stream_hub.set_hls_enabled(true);

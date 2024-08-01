@@ -9,8 +9,7 @@ use std::vec::Vec;
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     pub rtmp: Option<RtmpConfig>,
-    pub httpflv: Option<HttpFlvConfig>,
-    pub hls: Option<HlsConfig>,
+    pub http: Option<HttpConfig>,
     pub httpapi: Option<HttpApiConfig>,
     pub httpnotify: Option<HttpNotifierConfig>,
     pub authsecret: AuthSecretConfig,
@@ -20,8 +19,7 @@ pub struct Config {
 impl Config {
     pub fn new(
         rtmp_port: usize,
-        httpflv_port: usize,
-        hls_port: usize,
+        http_port: usize,
         log_level: String,
     ) -> Self {
         let mut rtmp_config: Option<RtmpConfig> = None;
@@ -37,20 +35,11 @@ impl Config {
         }
 
 
-        let mut httpflv_config: Option<HttpFlvConfig> = None;
-        if httpflv_port > 0 {
-            httpflv_config = Some(HttpFlvConfig {
+        let mut http_config: Option<HttpConfig> = None;
+        if http_port > 0 {
+            http_config = Some(HttpConfig {
                 enabled: true,
-                port: httpflv_port,
-                auth: None,
-            });
-        }
-
-        let mut hls_config: Option<HlsConfig> = None;
-        if hls_port > 0 {
-            hls_config = Some(HlsConfig {
-                enabled: true,
-                port: hls_port,
+                port: http_port,
                 need_record: false,
                 auth: None,
             });
@@ -63,8 +52,7 @@ impl Config {
 
         Self {
             rtmp: rtmp_config,
-            httpflv: httpflv_config,
-            hls: hls_config,
+            http: http_config,
             httpapi: None,
             httpnotify: None,
             authsecret: AuthSecretConfig::default(),
@@ -96,14 +84,7 @@ pub struct RtmpPushConfig {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct HttpFlvConfig {
-    pub enabled: bool,
-    pub port: usize,
-    pub auth: Option<AuthConfig>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct HlsConfig {
+pub struct HttpConfig {
     pub enabled: bool,
     pub port: usize,
     //record or not

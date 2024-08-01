@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
                 .value_name("path")
                 .help("Specify the xiu server configuration file path.")
                 .value_parser(value_parser!(String))
-                .conflicts_with_all(["rtmp", "httpflv", "hls", "log"]),
+                .conflicts_with_all(["rtmp", "http", "log"]),
         )
         .arg(
             Arg::new("rtmp")
@@ -37,20 +37,11 @@ async fn main() -> Result<()> {
                 .conflicts_with("config_file_path"),
         )
         .arg(
-            Arg::new("httpflv")
-                .long("httpflv")
-                .short('f')
-                .value_name("port")
-                .help("Specify the http-flv listening port.(e.g.:8080)")
-                .value_parser(value_parser!(usize))
-                .conflicts_with("config_file_path"),
-        )
-        .arg(
-            Arg::new("hls")
-                .long("hls")
+            Arg::new("http")
+                .long("http")
                 .short('s')
                 .value_name("port")
-                .help("Specify the hls listening port.(e.g.:8081)")
+                .help("Specify the http-flv listening port.(e.g.:8080)")
                 .value_parser(value_parser!(usize))
                 .conflicts_with("config_file_path"),
         )
@@ -110,11 +101,7 @@ async fn main() -> Result<()> {
             None => 0,
         };
 
-        let httpflv_port = match matches.get_one::<usize>("httpflv") {
-            Some(val) => *val,
-            None => 0,
-        };
-        let hls_port = match matches.get_one::<usize>("hls") {
+        let http_port = match matches.get_one::<usize>("http") {
             Some(val) => *val,
             None => 0,
         };
@@ -125,8 +112,7 @@ async fn main() -> Result<()> {
 
         Config::new(
             rtmp_port,
-            httpflv_port,
-            hls_port,
+            http_port,
             log_level,
         )
     };
