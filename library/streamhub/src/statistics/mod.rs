@@ -3,7 +3,7 @@ use {
     crate::{define::SubscribeType, utils::Uuid},
     chrono::{DateTime, Local},
     serde::Serialize,
-    std::{collections::HashMap, sync::Arc, time::Duration},
+    std::{sync::Arc, time::Duration},
     tokio::{
         sync::{broadcast::Receiver, Mutex},
         time,
@@ -36,7 +36,7 @@ pub struct VideoInfo {
 pub struct AudioInfo {
     pub sound_format: SoundFormat,
     pub profile: AacProfile,
-    pub samplerate: u32,
+    pub sample_rate: u32,
     pub channels: u8,
     /*used for caculate the bitrate*/
     #[serde(skip_serializing)]
@@ -49,7 +49,7 @@ pub struct StatisticsStream {
     /*publisher infomation */
     pub publisher: StatisticPublisher,
     /*subscriber infomation */
-    pub subscribers: HashMap<Uuid, StatisticSubscriber>,
+    pub subscribers: Vec<StatisticSubscriber>,
     /*How many clients are subscribing to this stream.*/
     pub subscriber_count: usize,
     /*calculate upstream traffic, now equals audio and video traffic received by this server*/
@@ -81,7 +81,7 @@ impl StatisticPublisher {
         }
     }
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Default)]
 pub struct StatisticSubscriber {
     pub id: Uuid,
     pub start_time: DateTime<Local>,
@@ -112,9 +112,21 @@ impl StatisticsStream {
     }
 
     fn get_subscriber(&self, uuid: Uuid) -> StatisticsStream {
-        let mut statistic_stream = self.clone();
-        statistic_stream.subscribers.retain(|&id, _| uuid == id);
-        statistic_stream
+        // Find the subscriber with the matching UUID
+        let found_subscribers: Vec<StatisticSubscriber> = self.subscribers
+            .iter()
+            .filter(|s| s.id == uuid) // Adjust this according to how your UUID is stored
+            .cloned() // Clone the found subscriber(s)
+            .collect();
+
+        // Create a new StatisticsStream with the found subscribers
+        StatisticsStream {
+            publisher: self.publisher.clone(),
+            subscribers: found_subscribers.clone(),
+            subscriber_count: found_subscribers.len(),
+            total_recv_bytes: self.total_recv_bytes,
+            total_send_bytes: self.total_send_bytes,
+        }
     }
 
     pub fn query_by_uuid(&self, uuid: Uuid) -> StatisticsStream {
@@ -137,7 +149,7 @@ impl StatisticsCaculate {
     }
 
     async fn caculate(&mut self) {
-        let stream_statistics_clone = &mut self.stream.lock().await;
+        let mut stream_statistics_clone = self.stream.lock().await;
 
         stream_statistics_clone.publisher.video.bitrate =
             stream_statistics_clone.publisher.video.recv_bytes * 8 / 5000;
@@ -155,23 +167,25 @@ impl StatisticsCaculate {
             stream_statistics_clone.publisher.recv_bytes * 8 / 5000;
         stream_statistics_clone.publisher.recv_bytes = 0;
 
-        for (_, subscriber) in stream_statistics_clone.subscribers.iter_mut() {
+        // Corrected loop for mutable references
+        for subscriber in stream_statistics_clone.subscribers.iter_mut() {
             subscriber.send_bitrate = subscriber.send_bytes * 8 / 5000;
             subscriber.send_bytes = 0;
         }
     }
+
     pub async fn start(&mut self) {
         let mut interval = time::interval(Duration::from_secs(5));
 
         loop {
             tokio::select! {
-               _ = interval.tick() => {
-                self.caculate().await;
-               },
-               _ = self.exit.recv() => {
+                _ = interval.tick() => {
+                    self.caculate().await;
+                },
+                _ = self.exit.recv() => {
                     log::info!("avstatistics shutting down");
-                    return
-               },
+                    return;
+                },
             }
         }
     }

@@ -1,10 +1,9 @@
 use axum::extract::Path;
 use axum::routing::delete;
 use {
-    anyhow::Result,
     axum::{
         extract::Query,
-        routing::{get, post},
+        routing::get,
         Json, Router,
     },
     serde::Deserialize,
@@ -20,8 +19,8 @@ use {
 
 #[derive(serde::Serialize)]
 struct ApiResponse<T> {
-    error_code: i32,
-    desp: String,
+    success: bool,
+    message: String,
     data: T,
 }
 
@@ -52,9 +51,9 @@ impl ApiService {
     async fn root(&self) -> String {
         String::from(
             "Usage of xiu http api:
-                ./api/query_whole_streams(get) query whole streams' information or top streams' information.
-                ./api/query_stream(post) query stream information by identifier and uuid.
-                ./api/kick_off_client(post) kick off client by publish/subscribe id.\n",
+                ./api/streams(get) query whole streams' information or top streams' information.
+                ./api/stream?app_name=demo&stream_name=demo(get) query stream information by identifier and uuid.
+                ./api/session/<session_id>(delete) kick off client by publish/subscribe id.\n",
         )
     }
 
@@ -77,16 +76,16 @@ impl ApiService {
         match result_receiver.await {
             Ok(dat_val) => {
                 let api_response = ApiResponse {
-                    error_code: 0,
-                    desp: String::from("success"),
+                    success: true,
+                    message: String::from("success"),
                     data: dat_val,
                 };
                 Json(api_response)
             }
             Err(err) => {
                 let api_response = ApiResponse {
-                    error_code: -1,
-                    desp: String::from("failed"),
+                    success: false,
+                    message: String::from("failed"),
                     data: serde_json::json!(err.to_string()),
                 };
                 Json(api_response)
@@ -115,16 +114,16 @@ impl ApiService {
         match result_receiver.await {
             Ok(dat_val) => {
                 let api_response = ApiResponse {
-                    error_code: 0,
-                    desp: String::from("success"),
+                    success: true,
+                    message: String::from("success"),
                     data: dat_val,
                 };
                 Json(api_response)
             }
             Err(err) => {
                 let api_response = ApiResponse {
-                    error_code: -1,
-                    desp: String::from("failed"),
+                    success: false,
+                    message: String::from("failed"),
                     data: serde_json::json!(err.to_string()),
                 };
                 Json(api_response)
@@ -132,18 +131,37 @@ impl ApiService {
         }
     }
 
-    async fn kick_off_client(&self, id: KickOffClient) -> Result<String> {
-        let id_result = Uuid::from_str2(&id.uuid);
+    async fn kick_off_client(&self, id: KickOffClient) -> Json<ApiResponse<Value>> {
+        match Uuid::from_str2(&id.uuid) {
+            Some(id) => {
+                let hub_event = define::StreamHubEvent::ApiKickClient { id };
+                println!("kick_off_client: {:?}", id);
 
-        if let Some(id) = id_result {
-            let hub_event = define::StreamHubEvent::ApiKickClient { id };
-
-            if let Err(err) = self.channel_event_producer.send(hub_event) {
-                log::error!("send api kick_off_client event error: {}", err);
+                match self.channel_event_producer.send(hub_event) {
+                    Ok(_) => Json(ApiResponse {
+                        success: true,
+                        message: String::from("success"),
+                        data: serde_json::json!(""),
+                    }),
+                    Err(err) => {
+                        log::error!("send api kick_off_client event error: {}", err);
+                        Json(ApiResponse {
+                            success: false,
+                            message: String::from("failed to send event"),
+                            data: serde_json::json!(""),
+                        })
+                    }
+                }
+            },
+            None => {
+                log::error!("invalid UUID format");
+                Json(ApiResponse {
+                    success: false,
+                    message: String::from("invalid UUID format"),
+                    data: serde_json::json!(""),
+                })
             }
         }
-
-        Ok(String::from("ok"))
     }
 }
 
@@ -168,7 +186,7 @@ pub async fn run(producer: StreamHubEventSender, port: usize) {
     let api_kick_off = api.clone();
     let kick_off = move |Path(id): Path<String>| async move {
         // Use the extracted `id` in your logic here
-        api_kick_off.kick_off_client(KickOffClient { uuid: id }).await.unwrap_or_else(|_| "error".to_owned())
+        api_kick_off.kick_off_client(KickOffClient { uuid: id }).await
     };
 
     let app = Router::new()

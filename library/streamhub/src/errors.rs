@@ -13,6 +13,8 @@ pub enum StreamHubErrorValue {
     NoStreamName,
     #[fail(display = "no app or stream name")]
     NoAppOrStreamName,
+    #[fail(display = "Session Not found")]
+    NoSession,
     #[fail(display = "exists")]
     Exists,
     #[fail(display = "send error")]

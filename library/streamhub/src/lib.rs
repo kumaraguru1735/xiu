@@ -216,14 +216,14 @@ impl StreamDataTransceiver {
                     duration: _,
                 } => {
                     if let Some(uid) = uuid {
-                        {
-                            let subscriber = &mut statistics_data.lock().await.subscribers;
-                            if let Some(sub) = subscriber.get_mut(&uid) {
-                                sub.send_bytes += data_size;
-                            }
+                        let mut statistics_data = statistics_data.lock().await; // Assuming `lock` method for Mutex is defined.
+
+                        // Find and update the subscriber
+                        if let Some(sub) = statistics_data.subscribers.iter_mut().find(|sub| sub.id == uid) {
+                            sub.send_bytes += data_size;
                         }
 
-                        statistics_data.lock().await.total_send_bytes += data_size;
+                        statistics_data.total_send_bytes += data_size;
                     } else {
                         match aac_packet_type {
                             aac_packet_type::AAC_RAW => {
@@ -245,15 +245,16 @@ impl StreamDataTransceiver {
                 } => {
                     //if it is a subscriber, we need to update the send_bytes
                     if let Some(uid) = uuid {
-                        {
-                            let subscriber = &mut statistics_data.lock().await.subscribers;
-                            if let Some(sub) = subscriber.get_mut(&uid) {
-                                sub.send_bytes += data_size;
-                                sub.total_send_bytes += data_size;
-                            }
+
+                        let mut statistics_data = statistics_data.lock().await;
+
+                        // Find and update the subscriber
+                        if let Some(sub) = statistics_data.subscribers.iter_mut().find(|sub| sub.id == uid) {
+                            sub.send_bytes += data_size;
+                            sub.total_send_bytes += data_size;
                         }
 
-                        statistics_data.lock().await.total_send_bytes += data_size;
+                        statistics_data.total_send_bytes += data_size;
                     }
                     //if it is a publisher, we need to update the recv_bytes
                     else {
@@ -276,13 +277,13 @@ impl StreamDataTransceiver {
                 StatisticData::AudioCodec {
                     sound_format,
                     profile,
-                    samplerate,
+                    sample_rate,
                     channels,
                 } => {
                     let audio_codec_data = &mut statistics_data.lock().await.publisher.audio;
                     audio_codec_data.sound_format = sound_format;
                     audio_codec_data.profile = profile;
-                    audio_codec_data.samplerate = samplerate;
+                    audio_codec_data.sample_rate = sample_rate;
                     audio_codec_data.channels = channels;
                 }
                 StatisticData::VideoCodec {
@@ -326,7 +327,7 @@ impl StreamDataTransceiver {
                         send_bytes: 0,
                         total_send_bytes: 0,
                     };
-                    subscriber.insert(id, sub);
+                    subscriber.push(sub);
                 }
             }
         }
@@ -406,12 +407,23 @@ impl StreamDataTransceiver {
                             statistics_data.subscriber_count += 1;
                         }
                         TransceiverEvent::UnSubscribe { info } => {
+                            // Remove from frame_senders (assuming it's a HashMap or similar)
                             frame_senders.lock().await.remove(&info.id);
-                            let mut statistics_data = statistics_data.lock().await;
-                            let subscribers = &mut statistics_data.subscribers;
-                            subscribers.remove(&info.id);
 
-                            statistics_data.subscriber_count -= 1;
+                            // Lock and access statistics_data
+                            let mut statistics_data = statistics_data.lock().await;
+
+                            // Find the position of the subscriber to remove
+                            if let Some(pos) = statistics_data.subscribers.iter().position(|s| s.id == info.id) {
+                                // Remove the subscriber at the found position
+                                statistics_data.subscribers.remove(pos);
+
+                                // Update subscriber count
+                                statistics_data.subscriber_count -= 1;
+                            } else {
+                                // Handle case where subscriber was not found (optional)
+                                log::warn!("Subscriber with id {} not found for removal", info.id);
+                            }
                         }
                         TransceiverEvent::UnPublish {} => {
                             if let Err(err) = exit.send(()) {
@@ -719,20 +731,18 @@ impl StreamsHub {
                     result_sender,
                 } => {
                     log::info!("api_statistic1:  stream identifier: {:?}", identifier);
-                    let result = match self.api_statistic(top_n, identifier, uuid).await {
-                        Ok(rv) => rv,
-                        Err(err) => {
-                            log::error!("event_loop api error: {}", err);
-                            json!(err.to_string())
-                        }
-                    };
+                    let result = self.api_statistic(top_n, identifier, uuid).await.unwrap_or_else(|err| {
+                        log::error!("event_loop api error: {}", err);
+                        json!(err.to_string())
+                    });
 
                     if let Err(err) = result_sender.send(result) {
                         log::error!("event_loop api error: {}", err);
                     }
                 }
                 StreamHubEvent::ApiKickClient { id } => {
-                    if let Err(err) = self.api_kick_off_client(id) {
+                    println!("ERR {:?}", self.api_kick_off_client(id));
+                    if let Err(err) =self.api_kick_off_client(id) {
                         log::error!("api_kick_off_client api error: {}", err);
                     }
                 }
@@ -852,13 +862,15 @@ impl StreamsHub {
                         });
                     }
                 }
-                _ => {}
+                _ => {
+                    return Ok(());
+                }
             }
-        } else {
-            log::warn!("cannot find uid: {}", uid);
         };
-
-        Ok(())
+        log::warn!("cannot find uid: {}", uid);
+        return Err(StreamHubError {
+            value: StreamHubErrorValue::NoSession,
+        });
     }
 
     //player subscribe a stream

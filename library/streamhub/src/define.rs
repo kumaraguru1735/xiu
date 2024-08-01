@@ -19,9 +19,10 @@ use {
     utils::Uuid,
 };
 
-#[derive(Debug, Serialize, Clone, Eq, PartialEq)]
+#[derive(Debug, Serialize, Clone, Eq, PartialEq, Default)]
 pub enum SubscribeType {
     /* Remote client request playing rtmp stream.*/
+    #[default]
     PlayerRtmp,
     /* Remote client request playing http-flv stream.*/
     PlayerHttpFlv,
@@ -337,7 +338,7 @@ pub enum StatisticData {
     AudioCodec {
         sound_format: SoundFormat,
         profile: AacProfile,
-        samplerate: u32,
+        sample_rate: u32,
         channels: u8,
     },
     VideoCodec {

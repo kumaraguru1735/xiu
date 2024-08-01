@@ -96,7 +96,7 @@ impl Cache {
                 let statistic_audio_codec = StatisticData::AudioCodec {
                     sound_format: define::SoundFormat::AAC,
                     profile: define::u8_2_aac_profile(aac.mpeg4_aac.object_type),
-                    samplerate: aac.mpeg4_aac.sampling_frequency,
+                    sample_rate: aac.mpeg4_aac.sampling_frequency,
                     channels: aac.mpeg4_aac.channels,
                 };
                 if let Err(err) = statistic_data_sender.send(statistic_audio_codec) {
