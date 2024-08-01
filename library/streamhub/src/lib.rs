@@ -21,7 +21,7 @@ use {
     define::{
         BroadcastEvent, BroadcastEventReceiver, BroadcastEventSender, DataReceiver, DataSender,
         FrameData, FrameDataSender, Information, StreamHubEvent, StreamHubEventReceiver,
-        StreamHubEventSender, SubscribeType, SubscriberInfo, TStreamHandler, TransceiverEvent,
+        StreamHubEventSender, SubscriberInfo, TStreamHandler, TransceiverEvent,
         TransceiverEventReceiver, TransceiverEventSender,
     },
     errors::{StreamHubError, StreamHubErrorValue},
@@ -406,14 +406,7 @@ impl StreamDataTransceiver {
                             statistics_data.subscriber_count += 1;
                         }
                         TransceiverEvent::UnSubscribe { info } => {
-                            match info.sub_type {
-                                SubscribeType::PlayerRtp | SubscribeType::PlayerWebrtc => {
-                                    packet_senders.lock().await.remove(&info.id);
-                                }
-                                _ => {
-                                    frame_senders.lock().await.remove(&info.id);
-                                }
-                            }
+                            frame_senders.lock().await.remove(&info.id);
                             let mut statistics_data = statistics_data.lock().await;
                             let subscribers = &mut statistics_data.subscribers;
                             subscribers.remove(&info.id);

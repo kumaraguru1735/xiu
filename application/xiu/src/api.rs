@@ -1,3 +1,5 @@
+use axum::extract::Path;
+use axum::routing::delete;
 use {
     anyhow::Result,
     axum::{
@@ -37,9 +39,8 @@ struct QueryWholeStreamsParams {
 
 #[derive(Deserialize)]
 struct QueryStream {
-    identifier: StreamIdentifier,
-    // if specify uuid, then query the stream by uuid and filter no used data.
-    uuid: Option<String>,
+    app_name: String,
+    stream_name: String,
 }
 
 #[derive(Clone)]
@@ -94,17 +95,16 @@ impl ApiService {
     }
 
     async fn query_stream(&self, stream: QueryStream) -> Json<ApiResponse<Value>> {
-        let uuid = if let Some(uid) = stream.uuid {
-            Uuid::from_str2(&uid)
-        } else {
-            None
+        let identifier = StreamIdentifier::Rtmp {
+            app_name: stream.app_name,
+            stream_name: stream.stream_name,
         };
 
         let (result_sender, result_receiver) = oneshot::channel();
         let hub_event = define::StreamHubEvent::ApiStatistic {
             top_n: None,
-            identifier: Some(stream.identifier),
-            uuid,
+            identifier: Some(identifier),
+            uuid: None,
             result_sender,
         };
 
@@ -161,24 +161,23 @@ pub async fn run(producer: StreamHubEventSender, port: usize) {
     };
 
     let api_query_stream = api.clone();
-    let query_stream = move |Json(stream): Json<QueryStream>| async move {
-        api_query_stream.query_stream(stream).await
+    let query_stream = move |Query(params): Query<QueryStream>| async move {
+        api_query_stream.query_stream(params).await
     };
 
     let api_kick_off = api.clone();
-    let kick_off = move |Json(id): Json<KickOffClient>| async move {
-        api_kick_off.kick_off_client(id).await.unwrap_or_else(|_| "error".to_owned())
+    let kick_off = move |Path(id): Path<String>| async move {
+        // Use the extracted `id` in your logic here
+        api_kick_off.kick_off_client(KickOffClient { uuid: id }).await.unwrap_or_else(|_| "error".to_owned())
     };
 
     let app = Router::new()
         .route("/", get(root))
-        .route("/api/query_whole_streams", get(query_streams))
-        .route("/api/query_stream", post(query_stream))
-        .route("/api/kick_off_client", post(kick_off));
+        .route("/api/streams", get(query_streams))
+        .route("/api/stream", get(query_stream))
+        .route("/api/session/:id", delete(kick_off));
 
     log::info!("Http api server listening on http://0.0.0.0:{}", port);
-    axum::Server::bind(&([0, 0, 0, 0], port as u16).into())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await.unwrap();
+    axum::serve(listener, app.into_make_service()).await.unwrap();
 }

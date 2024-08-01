@@ -33,7 +33,7 @@ impl HttpNotifier {
         on_stop_url: Option<String>,
     ) -> Self {
         Self {
-            request_client: reqwest::Client::new(),
+            request_client: Client::new(),
             on_publish_url,
             on_unpublish_url,
             on_play_url,

@@ -27,12 +27,6 @@ pub enum SubscribeType {
     PlayerHttpFlv,
     /* Remote client request playing hls stream.*/
     PlayerHls,
-    /* Remote/local client request playing rtsp stream.*/
-    PlayerRtsp,
-    /* Local client request playing webrtc stream, it's used for protocol remux.*/
-    PlayerWebrtc,
-    /* Remote client request playing rtsp or webrtc(whep) raw rtp stream.*/
-    PlayerRtp,
     GenerateHls,
     /* Local client *subscribe* from local rtmp session
     and *publish* (relay push) the stream to remote server.*/
@@ -47,13 +41,6 @@ pub enum PublishType {
     /* Local client *publish* the rtmp stream to local session,
     the rtmp stream is *subscribed* (pull) from remote server.*/
     RelayRtmp,
-    /* Receive rtsp stream from remote push client */
-    PushRtsp,
-    RelayRtsp,
-    /* Receive webrtc stream from remote push client(whip),  */
-    PushWebRTC,
-    /* It used for publishing raw rtp data of rtsp/whbrtc(whip) */
-    PushRtp,
 }
 
 #[derive(Debug, Serialize, Clone)]
