@@ -1,5 +1,13 @@
+use axum::body::Body;
 use axum::extract::Path;
+use axum::http::{Request, StatusCode};
+use axum::middleware;
+use axum::middleware::Next;
+use axum::response::IntoResponse;
 use axum::routing::delete;
+use base64::Engine;
+use base64::engine::general_purpose;
+use tower::ServiceBuilder;
 use {
     axum::{
         extract::Query,
@@ -165,7 +173,44 @@ impl ApiService {
     }
 }
 
-pub async fn run(producer: StreamHubEventSender, port: usize) {
+
+
+async fn basic_auth(
+    req: Request<Body>,
+    next: Next,
+    username: String,
+    password: String,
+) -> impl IntoResponse {
+    if let Some(auth_header) = req.headers().get(axum::http::header::AUTHORIZATION) {
+        if let Ok(auth_str) = auth_header.to_str() {
+            if let Some(basic) = auth_str.strip_prefix("Basic ") {
+                if let Ok(decoded) = general_purpose::STANDARD.decode(basic) {
+                    if let Ok(decoded_str) = String::from_utf8(decoded) {
+                        let mut parts = decoded_str.splitn(2, ':');
+                        let user = parts.next().unwrap_or("");
+                        let pass = parts.next().unwrap_or("");
+                        if user == username && pass == password {
+                            return next.run(req).await;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    (StatusCode::UNAUTHORIZED, Json(ApiResponse {
+        success: false,
+        message: String::from("UNAUTHORIZED"),
+        data: serde_json::json!(""),
+    })).into_response()
+}
+
+pub async fn run(
+    producer: StreamHubEventSender,
+    port: usize,
+    username: String,
+    password: String
+) {
     let api = Arc::new(ApiService {
         channel_event_producer: producer,
     });
@@ -185,7 +230,6 @@ pub async fn run(producer: StreamHubEventSender, port: usize) {
 
     let api_kick_off = api.clone();
     let kick_off = move |Path(id): Path<String>| async move {
-        // Use the extracted `id` in your logic here
         api_kick_off.kick_off_client(KickOffClient { uuid: id }).await
     };
 
@@ -193,7 +237,10 @@ pub async fn run(producer: StreamHubEventSender, port: usize) {
         .route("/", get(root))
         .route("/api/streams", get(query_streams))
         .route("/api/stream", get(query_stream))
-        .route("/api/session/:id", delete(kick_off));
+        .route("/api/session/:id", delete(kick_off))
+        .layer(ServiceBuilder::new().layer(middleware::from_fn(move |req, next| {
+            basic_auth(req, next, username.clone(), password.clone())
+        })));
 
     log::info!("Http api server listening on http://0.0.0.0:{}", port);
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await.unwrap();

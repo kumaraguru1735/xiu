@@ -5,7 +5,6 @@ use crate::config::{AuthConfig, AuthSecretConfig};
 use {
     super::api,
     super::config::Config,
-    //https://rustcc.cn/article?id=6dcbf032-0483-4980-8bfe-c64a7dfb33c7
     anyhow::Result,
     commonlib::auth::Auth,
     http::server as http_server,
@@ -73,11 +72,13 @@ impl Service {
             None
         };
 
+        let edit_auth = self.cfg.edit_auth.clone();
+        println!("edit_auth: {:?}", edit_auth);
         let mut stream_hub = StreamsHub::new(notifier);
 
         self.start_http(&mut stream_hub).await?;
         self.start_rtmp(&mut stream_hub).await?;
-        self.start_http_api_server(&mut stream_hub).await?;
+        self.start_http_api_server(&mut stream_hub, edit_auth.username, edit_auth.password).await?;
 
         tokio::spawn(async move {
             stream_hub.run().await;
@@ -86,7 +87,7 @@ impl Service {
         Ok(())
     }
 
-    async fn start_http_api_server(&mut self, stream_hub: &mut StreamsHub) -> Result<()> {
+    async fn start_http_api_server(&mut self, stream_hub: &mut StreamsHub, username: String, password: String) -> Result<()> {
         let producer = stream_hub.get_hub_event_sender();
 
         let http_api_port = if let Some(httpapi) = &self.cfg.httpapi {
@@ -96,7 +97,7 @@ impl Service {
         };
 
         tokio::spawn(async move {
-            api::run(producer, http_api_port).await;
+            api::run(producer, http_api_port, username, password).await;
         });
         Ok(())
     }

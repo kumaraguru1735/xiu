@@ -31,6 +31,8 @@ streamhub = { path = "../../library/streamhub/" }
 commonlib = { path = "../../library/common/" }
 rtmp = { path = "../../protocol/rtmp/" }
 http = { path = "../../protocol/http/" }
+base64 = "0.21.2"
+tower = "0.4.13"
 
 [features]
 default = ["std"]

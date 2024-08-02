@@ -10,6 +10,7 @@ use std::vec::Vec;
 pub struct Config {
     pub rtmp: Option<RtmpConfig>,
     pub http: Option<HttpConfig>,
+    pub edit_auth: EditAuthConfig,
     pub httpapi: Option<HttpApiConfig>,
     pub httpnotify: Option<HttpNotifierConfig>,
     pub authsecret: AuthSecretConfig,
@@ -53,6 +54,7 @@ impl Config {
         Self {
             rtmp: rtmp_config,
             http: http_config,
+            edit_auth: EditAuthConfig::default(),
             httpapi: None,
             httpnotify: None,
             authsecret: AuthSecretConfig::default(),
@@ -132,6 +134,12 @@ pub struct AuthSecretConfig {
     pub key: String,
     pub password: String,
     pub push_password: Option<String>
+}
+
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct EditAuthConfig{
+    pub username: String,
+    pub password: String,
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]

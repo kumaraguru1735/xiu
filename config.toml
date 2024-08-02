@@ -1,0 +1,24 @@
+[rtmp]
+enabled = true #enable the RTMP media protocol or not
+port = 1935 #specify the RTMP protocol listening port.
+gop_num = 0 #specify the cache GOP count for instant playback.（may increase latency）
+
+[http]
+enabled = true  # enable the hls & FLV media protocol or not
+port = 8080  # specify the Hls & FLV protocol listening port.
+need_record = false  # enable the HTTP-hls recording or not.
+
+[httpflv.auth]
+pull_enabled = true # enable pulling stream authentication or not.
+algorithm = "simple" # specify the authentication algorithm, simple or token.
+
+# specify the authentication secret
+[authsecret]
+# used for md5 authentication.
+key = "123456"
+# used for simple authentication
+password = "123456"
+
+[edit_auth]
+username = "admin"
+password = "admin"
