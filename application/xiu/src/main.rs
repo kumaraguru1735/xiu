@@ -1,11 +1,11 @@
 use {
     //https://rustcc.cn/article?id=6dcbf032-0483-4980-8bfe-c64a7dfb33c7
     anyhow::Result,
-    clap::{value_parser, Arg, Command},
+    clap::{Arg, Command, value_parser},
     env_logger_extend::logger::{Logger, Rotate},
     std::{env, str::FromStr},
     tokio::signal,
-    xiu::{config, config::Config, service::Service},
+    xiu::{config, service::Service},
 };
 
 // #[tokio::main(flavor = "current_thread")]
@@ -25,57 +25,12 @@ async fn main() -> Result<()> {
                 .value_name("path")
                 .help("Specify the xiu server configuration file path.")
                 .value_parser(value_parser!(String))
-                .conflicts_with_all(["rtmp", "http", "log"]),
-        )
-        .arg(
-            Arg::new("rtmp")
-                .long("rtmp")
-                .short('r')
-                .value_name("port")
-                .help("Specify the rtmp listening port.(e.g.:1935)")
-                .value_parser(value_parser!(usize))
-                .conflicts_with("config_file_path"),
-        )
-        .arg(
-            Arg::new("http")
-                .long("http")
-                .short('s')
-                .value_name("port")
-                .help("Specify the http-flv listening port.(e.g.:8080)")
-                .value_parser(value_parser!(usize))
-                .conflicts_with("config_file_path"),
-        )
-        .arg(
-            Arg::new("log")
-                .long("log")
-                .short('l')
-                .value_name("level")
-                .help("Specify the log level.")
-                .value_parser(log_levels)
-                .conflicts_with("config_file_path"),
         );
-    // .group(
-    //     ArgGroup::new("one_of_group")
-    //         .args(&["rtsp", "rtmp"])
-    //         .required(true)
-    //         .multiple(true),
-    // );
-    // config_file_path conficts with all the other args,
-    // if not using config_file_path, RTSP/RTMP must be specified one or both
-    // .groups([
-    //     ArgGroup::new("one_of_group")
-    //         .args(&["rtsp", "rtmp"])
-    //         .required(true)
-    //         .is_multiple(), // ArgGroup::new("one_of_group2")
-    //                         //     .args(&["config_file_path", "rtsp"])
-    //                         //     .required(true),
-    // ]);
-
     let args: Vec<String> = env::args().collect();
-    if 1 == args.len() {
-        cmd.print_help()?;
-        return Ok(());
-    }
+    // if 1 == args.len() {
+    //     cmd.print_help()?;
+    //     return Ok(());
+    // }
 
     let matches = cmd.clone().get_matches();
 
@@ -89,32 +44,15 @@ async fn main() -> Result<()> {
             }
         }
     } else {
-        let rtmp_port_o = matches.get_one::<usize>("rtmp");
-
-        if rtmp_port_o.is_none() {
-            println!("If you do not specify the config Options, you must enable at least one protocol from RTSP and RTMP.");
-            return Ok(());
+        let config = config::load(&"config.toml".to_string());
+        match config {
+            Ok(val) => val,
+            Err(err) => {
+                println!("config.toml: {err}");
+                println!("Please specify the configuration file path with -c or --config");
+                return Ok(());
+            }
         }
-
-        let rtmp_port = match rtmp_port_o {
-            Some(val) => *val,
-            None => 0,
-        };
-
-        let http_port = match matches.get_one::<usize>("http") {
-            Some(val) => *val,
-            None => 0,
-        };
-        let log_level = match matches.get_one::<String>("log") {
-            Some(val) => val.clone(),
-            None => String::from("info"),
-        };
-
-        Config::new(
-            rtmp_port,
-            http_port,
-            log_level,
-        )
     };
 
     /*set log level*/

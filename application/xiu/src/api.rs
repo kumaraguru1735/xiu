@@ -24,6 +24,7 @@ use {
     },
     tokio::{self, sync::oneshot},
 };
+use crate::pulse::run_stats;
 
 #[derive(serde::Serialize)]
 struct ApiResponse<T> {
@@ -63,6 +64,15 @@ impl ApiService {
                 ./api/stream?app_name=demo&stream_name=demo(get) query stream information by identifier and uuid.
                 ./api/session/<session_id>(delete) kick off client by publish/subscribe id.\n",
         )
+    }
+
+    async fn pulse(&self) -> Json<ApiResponse<Value>> {
+        let api_response = ApiResponse {
+            success: true,
+            message: String::from("success"),
+            data: serde_json::from_str(&run_stats()).unwrap(),
+        };
+        Json(api_response)
     }
 
     async fn query_whole_streams(
@@ -233,11 +243,17 @@ pub async fn run(
         api_kick_off.kick_off_client(KickOffClient { uuid: id }).await
     };
 
+    let api_pulse = api.clone();
+    let pulse = move || async move {
+        api_pulse.pulse().await
+    };
+
     let app = Router::new()
         .route("/", get(root))
         .route("/api/streams", get(query_streams))
         .route("/api/stream", get(query_stream))
         .route("/api/session/:id", delete(kick_off))
+        .route("/api/pulse", get(pulse))
         .layer(ServiceBuilder::new().layer(middleware::from_fn(move |req, next| {
             basic_auth(req, next, username.clone(), password.clone())
         })));

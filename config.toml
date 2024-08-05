@@ -12,6 +12,13 @@ need_record = false  # enable the HTTP-hls recording or not.
 pull_enabled = true # enable pulling stream authentication or not.
 algorithm = "simple" # specify the authentication algorithm, simple or token.
 
+[httpnotify]
+enabled = false
+on_publish = "http://localhost:3001/on_publish"
+on_unpublish = "http://localhost:3001/on_unpuslish"
+on_play = "http://localhost:3001/on_play"
+on_stop = "http://localhost:3001/on_stop"
+
 # specify the authentication secret
 [authsecret]
 # used for md5 authentication.
@@ -22,3 +29,6 @@ password = "123456"
 [edit_auth]
 username = "admin"
 password = "admin"
+
+[log]
+level = "info" # specify the log level, debug, info, warn, error, fatal or panic.
