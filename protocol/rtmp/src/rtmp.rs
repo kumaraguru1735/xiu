@@ -43,7 +43,6 @@ impl RtmpServer {
                 self.gop_num,
                 self.auth.clone(),
             );
-            println!("session created {:?} -> {:?}", session.app_name, session.stream_name);
             tokio::spawn(async move {
                 if let Err(err) = session.run().await {
                     log::info!(

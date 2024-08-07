@@ -746,7 +746,7 @@ impl ServerSession {
                 //println!("Stream: {:?}", stream);
                 if stream.app_name == self.app_name {
                     println!("App_name matched");
-                    if stream.stream_name == self.stream_name {
+                    if stream.stream_name == self.stream_name && !stream.disabled{
                         println!("Stream_name matched");
                         if let Some(auth) = &self.auth {
                             auth.authenticate(
