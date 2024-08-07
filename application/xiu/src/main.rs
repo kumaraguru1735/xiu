@@ -8,12 +8,24 @@ use {
     xiu::{config, service::Service},
 };
 
+use std::fs::File;
+use std::io::BufReader;
+use serde_json::from_reader;
+use xiu::config::Config;
+
+fn load_config(path: &str) -> Result<Config, anyhow::Error> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    let config: Config = from_reader(reader)?;
+    Ok(config)
+}
+
 // #[tokio::main(flavor = "current_thread")]
 #[tokio::main]
 async fn main() -> Result<()> {
     let log_levels = vec!["trace", "debug", "info", "warn", "error"];
 
-    let mut cmd = Command::new("XIU")
+    let cmd = Command::new("XIU")
         .bin_name("xiu")
         .version("0.12.7")
         .author("HarlanC <harlanc@foxmail.com>")
@@ -26,7 +38,7 @@ async fn main() -> Result<()> {
                 .help("Specify the xiu server configuration file path.")
                 .value_parser(value_parser!(String))
         );
-    let args: Vec<String> = env::args().collect();
+    //let args: Vec<String> = env::args().collect();
     // if 1 == args.len() {
     //     cmd.print_help()?;
     //     return Ok(());
@@ -35,8 +47,7 @@ async fn main() -> Result<()> {
     let matches = cmd.clone().get_matches();
 
     let config = if let Some(path) = matches.get_one::<String>("config_file_path") {
-        let config = config::load(path);
-        match config {
+        match load_config(path) {
             Ok(val) => val,
             Err(err) => {
                 println!("{path}: {err}");
@@ -44,11 +55,13 @@ async fn main() -> Result<()> {
             }
         }
     } else {
-        let config = config::load(&"config.toml".to_string());
-        match config {
-            Ok(val) => val,
+        match load_config("config.json") {
+            Ok(val) => {
+                println!("{:?}", val);
+                val
+            }
             Err(err) => {
-                println!("config.toml: {err}");
+                println!("config.json: {err}");
                 println!("Please specify the configuration file path with -c or --config");
                 return Ok(());
             }

@@ -19,16 +19,16 @@ pub struct Config {
 
 impl Config {
     pub fn new(
-        rtmp_port: usize,
-        http_port: usize,
+        rtmp_port: Vec<usize>,
+        http_port:Vec<usize>,
         log_level: String,
     ) -> Self {
         let mut rtmp_config: Option<RtmpConfig> = None;
-        if rtmp_port > 0 {
+        if rtmp_port.len() > 0 {
             rtmp_config = Some(RtmpConfig {
                 enabled: true,
-                gop_num: Some(1),
                 port: rtmp_port,
+                gop_num: None,
                 pull: None,
                 push: None,
                 auth: None,
@@ -37,7 +37,7 @@ impl Config {
 
 
         let mut http_config: Option<HttpConfig> = None;
-        if http_port > 0 {
+        if http_port.len() > 0 {
             http_config = Some(HttpConfig {
                 enabled: true,
                 port: http_port,
@@ -66,7 +66,7 @@ impl Config {
 #[derive(Debug, Deserialize, Clone)]
 pub struct RtmpConfig {
     pub enabled: bool,
-    pub port: usize,
+    pub port: Vec<usize>,
     pub gop_num: Option<usize>,
     pub pull: Option<RtmpPullConfig>,
     pub push: Option<Vec<RtmpPushConfig>>,
@@ -88,7 +88,7 @@ pub struct RtmpPushConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpConfig {
     pub enabled: bool,
-    pub port: usize,
+    pub port: Vec<usize>,
     //record or not
     pub need_record: bool,
     pub auth: Option<AuthConfig>,
@@ -163,7 +163,7 @@ fn test_toml_parse() {
         Err(err) => println!("{}", err),
     }
 
-    let str = fs::read_to_string("./src/config/config.toml");
+    let str = fs::read_to_string("./src/config/config.json");
 
     match str {
         Ok(val) => {

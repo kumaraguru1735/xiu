@@ -170,16 +170,17 @@ impl Service {
                 }
             }
 
-            let listen_port = rtmp_cfg_value.port;
-            let address = format!("0.0.0.0:{listen_port}");
+            for listen_port in rtmp_cfg_value.port.clone() {
+                let address = format!("0.0.0.0:{listen_port}");
 
-            let auth = Self::gen_auth(&rtmp_cfg_value.auth, &self.cfg.authsecret);
-            let mut rtmp_server = RtmpServer::new(address, producer, gop_num, auth);
-            tokio::spawn(async move {
-                if let Err(err) = rtmp_server.run().await {
-                    log::error!("rtmp server error: {}", err);
-                }
-            });
+                let auth = Self::gen_auth(&rtmp_cfg_value.auth, &self.cfg.authsecret);
+                let mut rtmp_server = RtmpServer::new(address, producer.clone(), gop_num, auth);
+                tokio::spawn(async move {
+                    if let Err(err) = rtmp_server.run().await {
+                        log::error!("rtmp server error on port {}: {}", listen_port, err);
+                    }
+                });
+            }
         }
 
         Ok(())
@@ -207,13 +208,15 @@ impl Service {
                 }
             });
 
-            let port = http_cfg_value.port;
-            let auth = Self::gen_auth(&http_cfg_value.auth, &self.cfg.authsecret);
-            tokio::spawn(async move {
-                if let Err(err) = http_server::run(event_producer.clone(),port, auth).await {
-                    log::error!("http server error: {}", err);
-                }
-            });
+            for port in http_cfg_value.port.clone() {
+                let auth = Self::gen_auth(&http_cfg_value.auth, &self.cfg.authsecret);
+                let event_producer = event_producer.clone();
+                tokio::spawn(async move {
+                    if let Err(err) = http_server::run(event_producer, port, auth).await {
+                        log::error!("http server error on port {}: {}", port, err);
+                    }
+                });
+            }
             stream_hub.set_hls_enabled(true);
         }
 

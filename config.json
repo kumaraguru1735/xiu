@@ -1,0 +1,34 @@
+{
+  "rtmp": {
+    "enabled": true,
+    "port": [1935, 1936],
+    "gop_num": 0
+  },
+  "http": {
+    "enabled": true,
+    "port": [8080, 8081],
+    "need_record": false
+  },
+  "httpflv_auth": {
+    "pull_enabled": true,
+    "algorithm": "simple"
+  },
+  "httpnotify": {
+    "enabled": false,
+    "on_publish": "http://localhost:3001/on_publish",
+    "on_unpublish": "http://localhost:3001/on_unpublish",
+    "on_play": "http://localhost:3001/on_play",
+    "on_stop": "http://localhost:3001/on_stop"
+  },
+  "authsecret": {
+    "key": "123456",
+    "password": "123456"
+  },
+  "edit_auth": {
+    "username": "admin",
+    "password": "admin"
+  },
+  "log": {
+    "level": "info"
+  }
+}

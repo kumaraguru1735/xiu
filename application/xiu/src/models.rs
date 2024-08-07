@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use crate::config::{AuthSecretConfig, EditAuthConfig, HttpApiConfig, HttpConfig, HttpNotifierConfig, LogConfig, RtmpConfig};
 
 #[warn(unused_imports)]
 #[derive(Debug, serde::Deserialize, Clone)]
@@ -93,4 +94,26 @@ pub struct NetworkInfo {
     pub flags: u32,
     pub total_received : u64,
     pub total_transmitted: u64,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Config0 {
+    pub rtmp: Option<RtmpConfig>,
+    pub http: Option<HttpConfig>,
+    pub edit_auth: EditAuthConfig,
+    pub httpapi: Option<HttpApiConfig>,
+    pub httpnotify: Option<HttpNotifierConfig>,
+    pub authsecret: AuthSecretConfig,
+    pub log: Option<LogConfig>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Config2 {
+    pub rtmp: Vec<usize>,
+    pub http: Vec<usize>,
+    pub edit_auth: EditAuthConfig,
+    pub httpapi: Option<HttpApiConfig>,
+    pub httpnotify: Option<HttpNotifierConfig>,
+    pub authsecret: AuthSecretConfig,
+    pub log: Option<LogConfig>,
 }
