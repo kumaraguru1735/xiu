@@ -1,12 +1,12 @@
 {
   "rtmp": {
     "enabled": true,
-    "port": [1935, 1936],
+    "port": [1935],
     "gop_num": 0
   },
   "http": {
     "enabled": true,
-    "port": [8080, 8081],
+    "port": [8080],
     "need_record": false
   },
   "httpflv_auth": {
@@ -29,7 +29,7 @@
     "password": "admin"
   },
   "log": {
-    "level": "info"
+    "level": "debug"
   },
   "streams": [
     {

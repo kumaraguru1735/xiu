@@ -58,7 +58,7 @@ async fn handle_connection(
                 }
             }
 
-            file_path = format!("./{app_name}/{stream_name}/index.m3u8");
+            file_path = format!("./hls/{app_name}/{stream_name}/index.m3u8");
         }
     } else if path.ends_with(".ts") {
         //http://127.0.0.1/app_name/stream_name/ts_name.m3u8
@@ -73,7 +73,7 @@ async fn handle_connection(
             let stream_name = String::from(rv[2]);
             let ts_name = String::from(rv[3]);
 
-            file_path = format!("./{app_name}/{stream_name}/{ts_name}.ts");
+            file_path = format!("./hls/{app_name}/{stream_name}/{ts_name}.ts");
         }
     }else if path.ends_with(".flv") {
         let flv_index = path.find(".flv").unwrap();

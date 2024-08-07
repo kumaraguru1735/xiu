@@ -8,3 +8,5 @@
 debug/
 target/
 .vscode/
+hls/
+.idea/

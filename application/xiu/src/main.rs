@@ -1,8 +1,3 @@
-use std::fs::File;
-use std::io::BufReader;
-
-use serde_json::from_reader;
-
 use commonlib::config::load_config;
 
 
@@ -19,7 +14,6 @@ use {
 // #[tokio::main(flavor = "current_thread")]
 #[tokio::main]
 async fn main() -> Result<()> {
-    let log_levels = vec!["trace", "debug", "info", "warn", "error"];
 
     let cmd = Command::new("XIU")
         .bin_name("xiu")

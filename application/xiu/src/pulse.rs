@@ -1,6 +1,6 @@
 use serde_json::to_string;
 use sysinfo::{ComponentExt, DiskExt, NetworkExt, NetworksExt, ProcessorExt, System, SystemExt};
-use crate::models::{AllData, APIResponse, ComponentData, Data, Disk, SystemData, SystemOs, NetworkInfo};
+use crate::models::{AllData, ComponentData, Disk, SystemData, SystemOs, NetworkInfo};
 use pnet::datalink;
 
 pub fn get_mac_address() -> String {

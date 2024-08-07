@@ -1,6 +1,5 @@
 use crate::auth::AuthAlgorithm;
 use serde_derive::Deserialize;
-use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::vec::Vec;

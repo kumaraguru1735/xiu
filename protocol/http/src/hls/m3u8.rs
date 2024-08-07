@@ -63,7 +63,7 @@ impl M3u8 {
         stream_name: String,
         need_record: bool,
     ) -> Self {
-        let m3u8_folder = format!("./{app_name}/{stream_name}");
+        let m3u8_folder = format!("./hls/{app_name}/{stream_name}");
         fs::create_dir_all(m3u8_folder.clone()).unwrap();
 
         let live_m3u8_name = "index.m3u8".to_string();
@@ -126,7 +126,7 @@ impl M3u8 {
 
     pub fn clear(&mut self) -> Result<(), MediaError> {
         if self.need_record {
-            let vod_m3u8_path = format!("{}/{}", self.m3u8_folder, self.vod_m3u8_name);
+            let vod_m3u8_path = format!("hls/{}/{}", self.m3u8_folder, self.vod_m3u8_name);
             let mut file_handler = File::create(vod_m3u8_path).unwrap();
             self.vod_m3u8_content += "#EXT-X-ENDLIST\n";
             file_handler.write_all(self.vod_m3u8_content.as_bytes())?;
@@ -137,7 +137,7 @@ impl M3u8 {
         }
 
         //clear live m3u8
-        let live_m3u8_path = format!("{}/{}", self.m3u8_folder, self.live_m3u8_name);
+        let live_m3u8_path = format!("hls/{}/{}", self.m3u8_folder, self.live_m3u8_name);
         fs::remove_file(live_m3u8_path)?;
 
         Ok(())
