@@ -35,6 +35,8 @@ use {
     tokio::{net::TcpStream, sync::Mutex},
     xflv::amf0::Amf0ValueType,
 };
+use commonlib::config::load_config;
+use crate::utils::print::print;
 
 enum ServerSessionState {
     Handshake,
@@ -451,7 +453,6 @@ impl ServerSession {
                 });
             }
         };
-
         let mut netconnection = NetConnection::new(Arc::clone(&self.io));
         log::info!("[ S->C ] [set connect_response]",);
         netconnection
@@ -707,70 +708,120 @@ impl ServerSession {
                 }
             }
         }
-        if let Some(auth) = &self.auth {
-            auth.authenticate(
-                &self.stream_name,
-                &self
-                    .query
-                    .as_ref()
-                    .map(|q| SecretCarrier::Query(q.to_string())),
-                false,
-            )?
-        }
+        println!("app_name: {:?}", self.app_name);
+        println!("stream_name: {:?}", self.stream_name);
 
-        /*Now it can update the request url*/
-        self.common.request_url = self.get_request_url(stream_name_with_query);
-
-        let _ = match other_values.remove(0) {
-            Amf0ValueType::UTF8String(val) => val,
-            _ => {
-                return Err(SessionError {
-                    value: SessionErrorValue::Amf0ValueCountNotCorrect,
-                });
+        // check app_name and stream_name on config file to check if it is disabled
+        let config = match load_config("config.json") {
+            Ok(val) => {
+                //println!("{:?}", val);
+                val
+            }
+            Err(err) => {
+                println!("config.json: {err}");
+                println!("Please specify the configuration file path with -c or --config");
+                return Ok(());
             }
         };
+        //println!("Config load on server session page => {:?}", config);
+        // match Some(&config.streams) {
+        //     Some(val) => {
+        //         //println!("{:?}", val);
+        //         for stream in val {
+        //             println!("Stream: {:?}", stream);
+        //             if stream.app_name == self.app_name {
+        //
+        //             }
+        //         }
+        //     }
+        //     _ => {
+        //         println!("config.json: ");
+        //         println!("Please specify the configuration file path with -c or --config");
+        //         return Ok(());
+        //     }
+        // }
 
-        let query = if let Some(query_val) = &self.query {
-            query_val.clone()
-        } else {
-            String::from("none")
-        };
+        if let Some(streams) = &config.streams {
+            Ok(for stream in streams {
+                //println!("Stream: {:?}", stream);
+                if stream.app_name == self.app_name {
+                    println!("App_name matched");
+                    if stream.stream_name == self.stream_name {
+                        println!("Stream_name matched");
+                        if let Some(auth) = &self.auth {
+                            auth.authenticate(
+                                &self.stream_name,
+                                &self
+                                    .query
+                                    .as_ref()
+                                    .map(|q| SecretCarrier::Query(q.to_string())),
+                                false,
+                            )?
+                        }
+                        /*Now it can update the request url*/
+                        self.common.request_url = self.get_request_url(stream_name_with_query);
 
-        log::info!(
-            "[ S<-C ] [publish]  app_name: {}, stream_name: {}, query: {}",
-            self.app_name,
-            self.stream_name,
-            query
-        );
+                        let _ = match other_values.remove(0) {
+                            Amf0ValueType::UTF8String(val) => val,
+                            _ => {
+                                return Err(SessionError {
+                                    value: SessionErrorValue::Amf0ValueCountNotCorrect,
+                                });
+                            }
+                        };
 
-        log::info!(
-            "[ S->C ] [stream begin]  app_name: {}, stream_name: {}, query: {}",
-            self.app_name,
-            self.stream_name,
-            query
-        );
+                        let query = if let Some(query_val) = &self.query {
+                            query_val.clone()
+                        } else {
+                            String::from("none")
+                        };
 
-        let mut event_messages = EventMessagesWriter::new(AsyncBytesWriter::new(self.io.clone()));
-        event_messages.write_stream_begin(*stream_id).await?;
+                        log::info!("[ S<-C ] [publish]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
 
-        let mut netstream = NetStreamWriter::new(Arc::clone(&self.io));
-        netstream
-            .write_on_status(transaction_id, "status", "NetStream.Publish.Start", "")
-            .await?;
-        log::info!(
-            "[ S->C ] [NetStream.Publish.Start]  app_name: {}, stream_name: {}",
-            self.app_name,
-            self.stream_name
-        );
+                        log::info!("[ S->C ] [stream begin]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
 
-        self.common
-            .publish_to_channels(
-                self.app_name.clone(),
-                self.stream_name.clone(),
-                self.gop_num,
+                        let mut event_messages = EventMessagesWriter::new(AsyncBytesWriter::new(self.io.clone()));
+                        event_messages.write_stream_begin(*stream_id).await?;
+
+                        let mut netstream = NetStreamWriter::new(Arc::clone(&self.io));
+                        netstream
+                            .write_on_status(transaction_id, "status", "NetStream.Publish.Start", "")
+                            .await?;
+                        log::info!("[ S->C ] [NetStream.Publish.Start]  app_name: {}, stream_name: {}",self.app_name,self.stream_name);
+
+                        self.common
+                            .publish_to_channels(
+                                self.app_name.clone(),
+                                self.stream_name.clone(),
+                                self.gop_num,
+                            )
+                            .await?;
+
+                        return Ok(());
+                    }
+                } else {
+                    log::warn!("App_name not matched");
+                    println!("App_name not matched");
+                    return Err(
+                        SessionError {
+                            value: SessionErrorValue::NoAppName,
+                        }
+                    );
+                }
+            })
+        }else {
+            log::warn!("No streams in config file");
+            println!("No streams in config file");
+            return Err(
+                SessionError {
+                    value: SessionErrorValue::NoAppName,
+                }
             )
-            .await?;
+        }
 
-        Ok(())
+
+
+
+
     }
 }

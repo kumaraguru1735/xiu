@@ -1,24 +1,20 @@
+use std::fs::File;
+use std::io::BufReader;
+
+use serde_json::from_reader;
+
+use commonlib::config::load_config;
+
+
 use {
     //https://rustcc.cn/article?id=6dcbf032-0483-4980-8bfe-c64a7dfb33c7
     anyhow::Result,
     clap::{Arg, Command, value_parser},
     env_logger_extend::logger::{Logger, Rotate},
-    std::{env, str::FromStr},
+    std::str::FromStr,
     tokio::signal,
-    xiu::{config, service::Service},
+    xiu::service::Service,
 };
-
-use std::fs::File;
-use std::io::BufReader;
-use serde_json::from_reader;
-use xiu::config::Config;
-
-fn load_config(path: &str) -> Result<Config, anyhow::Error> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let config: Config = from_reader(reader)?;
-    Ok(config)
-}
 
 // #[tokio::main(flavor = "current_thread")]
 #[tokio::main]

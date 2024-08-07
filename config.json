@@ -30,5 +30,17 @@
   },
   "log": {
     "level": "info"
-  }
+  },
+  "streams": [
+    {
+      "app_name": "live",
+      "stream_name": "test",
+      "disabled": false
+    },
+    {
+        "app_name": "live",
+        "stream_name": "test2",
+        "disabled": false
+    }
+  ]
 }

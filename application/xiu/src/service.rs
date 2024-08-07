@@ -1,10 +1,9 @@
 use commonlib::auth::AuthType;
 use std::sync::Arc;
-use crate::config::{AuthConfig, AuthSecretConfig};
+use commonlib::config::{AuthConfig, AuthSecretConfig};
 
 use {
     super::api,
-    super::config::Config,
     anyhow::Result,
     commonlib::auth::Auth,
     http::server as http_server,
@@ -16,6 +15,7 @@ use {
     tokio,
 };
 use http::hls::remuxer::HlsRemuxer;
+use commonlib::config::Config;
 
 pub struct Service {
     cfg: Config,

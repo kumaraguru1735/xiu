@@ -1,9 +1,8 @@
-pub mod errors;
-
-use commonlib::auth::AuthAlgorithm;
-use errors::ConfigError;
+use crate::auth::AuthAlgorithm;
 use serde_derive::Deserialize;
 use std::fs;
+use std::fs::File;
+use std::io::BufReader;
 use std::vec::Vec;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -14,6 +13,7 @@ pub struct Config {
     pub httpapi: Option<HttpApiConfig>,
     pub httpnotify: Option<HttpNotifierConfig>,
     pub authsecret: AuthSecretConfig,
+    pub streams: Option<Vec<Streams>>,
     pub log: Option<LogConfig>,
 }
 
@@ -50,6 +50,14 @@ impl Config {
             level: log_level,
             file: None,
         });
+        let streams_config = Some(vec![Streams {
+            app_name: "live".to_string(),
+            stream_name: "test".to_string(),
+            disabled: false,
+            max_bitrate: None,
+            on_publish_url: None,
+            max_sessions: None,
+        }]);
 
         Self {
             rtmp: rtmp_config,
@@ -58,9 +66,20 @@ impl Config {
             httpapi: None,
             httpnotify: None,
             authsecret: AuthSecretConfig::default(),
+            streams: streams_config,
             log: log_config,
         }
     }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Streams{
+    pub app_name: String,
+    pub stream_name: String,
+    pub disabled: bool,
+    pub max_bitrate: Option<usize>,
+    pub on_publish_url: Option<String>,
+    pub max_sessions: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -149,33 +168,80 @@ pub struct AuthConfig {
     pub algorithm: AuthAlgorithm,
 }
 
-pub fn load(cfg_path: &String) -> Result<Config, ConfigError> {
-    let content = fs::read_to_string(cfg_path)?;
-    let decoded_config = toml::from_str(&content[..]).unwrap();
-    Ok(decoded_config)
+use serde_json::from_reader;
+pub fn load_config(path: &str) -> anyhow::Result<Config, anyhow::Error> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    let config: Config = from_reader(reader)?;
+    Ok(config)
 }
 
-#[test]
-fn test_toml_parse() {
-    let path = std::env::current_dir();
-    match path {
-        Ok(val) => println!("The current directory is {}\n", val.display()),
-        Err(err) => println!("{}", err),
+// pub fn load(cfg_path: &String) -> Result<Config, ConfigError> {
+//     let content = fs::read_to_string(cfg_path)?;
+//     let decoded_config = toml::from_str(&content[..]).unwrap();
+//     Ok(decoded_config)
+// }
+
+// #[test]
+// fn test_toml_parse() {
+//     let path = std::env::current_dir();
+//     match path {
+//         Ok(val) => println!("The current directory is {}\n", val.display()),
+//         Err(err) => println!("{}", err),
+//     }
+//
+//     let str = fs::read_to_string("./src/config/config.json");
+//
+//     match str {
+//         Ok(val) => {
+//             println!("++++++{val}\n");
+//             let decoded: Config = toml::from_str(&val[..]).unwrap();
+//             println!("whole config: {:?}", decoded);
+//             let rtmp = decoded.httpnotify;
+//
+//             if let Some(val) = rtmp {
+//                 println!("++++++{val:?}\n");
+//             }
+//         }
+//         Err(err) => println!("======{err}"),
+//     }
+// }
+
+use {
+    failure::{Backtrace, Fail},
+    std::{fmt, io::Error},
+};
+#[derive(Debug)]
+pub struct ConfigError {
+    pub value: ConfigErrorValue,
+}
+
+#[derive(Debug, Fail)]
+pub enum ConfigErrorValue {
+    #[fail(display = "IO error: {}", _0)]
+    IOError(Error),
+}
+
+impl From<Error> for ConfigError {
+    fn from(error: Error) -> Self {
+        ConfigError {
+            value: ConfigErrorValue::IOError(error),
+        }
+    }
+}
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.value, f)
+    }
+}
+
+impl Fail for ConfigError {
+    fn cause(&self) -> Option<&dyn Fail> {
+        self.value.cause()
     }
 
-    let str = fs::read_to_string("./src/config/config.json");
-
-    match str {
-        Ok(val) => {
-            println!("++++++{val}\n");
-            let decoded: Config = toml::from_str(&val[..]).unwrap();
-            println!("whole config: {:?}", decoded);
-            let rtmp = decoded.httpnotify;
-
-            if let Some(val) = rtmp {
-                println!("++++++{val:?}\n");
-            }
-        }
-        Err(err) => println!("======{err}"),
+    fn backtrace(&self) -> Option<&Backtrace> {
+        self.value.backtrace()
     }
 }

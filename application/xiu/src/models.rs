@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::config::{AuthSecretConfig, EditAuthConfig, HttpApiConfig, HttpConfig, HttpNotifierConfig, LogConfig, RtmpConfig};
+use commonlib::config::{AuthSecretConfig, EditAuthConfig, HttpApiConfig, HttpConfig, HttpNotifierConfig, LogConfig, RtmpConfig};
 
 #[warn(unused_imports)]
 #[derive(Debug, serde::Deserialize, Clone)]

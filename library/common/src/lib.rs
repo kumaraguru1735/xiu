@@ -3,3 +3,4 @@ pub mod define;
 pub mod errors;
 pub mod http;
 pub mod utils;
+pub mod config;
