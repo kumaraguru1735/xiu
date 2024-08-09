@@ -50,8 +50,7 @@ impl Config {
             file: None,
         });
         let streams_config = Some(vec![Streams {
-            app_name: "live".to_string(),
-            stream_name: "test".to_string(),
+            name: "live/live".to_string(),
             disabled: false,
             max_bitrate: None,
             on_publish_url: None,
@@ -73,8 +72,7 @@ impl Config {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Streams{
-    pub app_name: String,
-    pub stream_name: String,
+    pub name: String,
     pub disabled: bool,
     pub max_bitrate: Option<usize>,
     pub on_publish_url: Option<String>,

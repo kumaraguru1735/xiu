@@ -1,3 +1,5 @@
+use serde_json::json;
+use tokio::time::timeout;
 use commonlib::auth::SecretCarrier;
 
 use crate::chunk::{errors::UnpackErrorValue, packetizer::ChunkPacketizer};
@@ -712,100 +714,135 @@ impl ServerSession {
 
         // check app_name and stream_name on config file to check if it is disabled
         let config = match load_config("config.json") {
-            Ok(val) => {
-                //println!("{:?}", val);
-                val
-            }
+            Ok(val) => val,
             Err(err) => {
                 println!("config.json: {err}");
                 println!("Please specify the configuration file path with -c or --config");
                 return Ok(());
             }
         };
-        //println!("Config load on server session page => {:?}", config);
-        // match Some(&config.streams) {
-        //     Some(val) => {
-        //         //println!("{:?}", val);
-        //         for stream in val {
-        //             println!("Stream: {:?}", stream);
-        //             if stream.app_name == self.app_name {
-        //
-        //             }
-        //         }
-        //     }
-        //     _ => {
-        //         println!("config.json: ");
-        //         println!("Please specify the configuration file path with -c or --config");
-        //         return Ok(());
-        //     }
-        // }
 
         if let Some(streams) = &config.streams {
             Ok(for stream in streams {
-                //println!("Stream: {:?}", stream);
-                if stream.app_name == self.app_name {
-                    println!("App_name matched");
-                    if stream.stream_name == self.stream_name && !stream.disabled{
-                        println!("Stream_name matched");
-                        if let Some(auth) = &self.auth {
-                            auth.authenticate(
-                                &self.stream_name,
-                                &self
-                                    .query
-                                    .as_ref()
-                                    .map(|q| SecretCarrier::Query(q.to_string())),
-                                false,
-                            )?
-                        }
-                        /*Now it can update the request url*/
-                        self.common.request_url = self.get_request_url(stream_name_with_query);
+                if stream.name == format!("{}/{}", self.app_name, self.stream_name) && !stream.disabled {
+                    println!("App_name/Stream_name matched");
+                    if let Some(on_publish_url) = &stream.on_publish_url {
+                        println!("On publish url: {:?}", on_publish_url);
+                        let client = reqwest::Client::builder()
+                            .timeout(Duration::from_secs(30)) // Increase this value as needed
+                            .build()
+                            .unwrap();
+                        let response = client
+                            .post(on_publish_url)
+                            .json(&json!({"name": stream.name, "ip": ""}))
+                            .send()
+                            .await;
+                        return match response {
+                            Ok(resp)  => {
+                                log::info!("on_publish success: {:?}", resp);
+                                self.common.request_url = self.get_request_url(stream_name_with_query);
 
-                        let _ = match other_values.remove(0) {
-                            Amf0ValueType::UTF8String(val) => val,
-                            _ => {
-                                return Err(SessionError {
-                                    value: SessionErrorValue::Amf0ValueCountNotCorrect,
-                                });
+                                let _ = match other_values.remove(0) {
+                                    Amf0ValueType::UTF8String(val) => val,
+                                    _ => {
+                                        return Err(SessionError {
+                                            value: SessionErrorValue::Amf0ValueCountNotCorrect,
+                                        });
+                                    }
+                                };
+
+                                let query = if let Some(query_val) = &self.query {
+                                    query_val.clone()
+                                } else {
+                                    String::from("none")
+                                };
+
+                                log::info!("[ S<-C ] [publish]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
+
+                                log::info!("[ S->C ] [stream begin]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
+
+                                let mut event_messages = EventMessagesWriter::new(AsyncBytesWriter::new(self.io.clone()));
+                                event_messages.write_stream_begin(*stream_id).await?;
+
+                                log::info!("788");
+
+                                let mut netstream = NetStreamWriter::new(Arc::clone(&self.io));
+                                netstream
+                                    .write_on_status(transaction_id, "status", "NetStream.Publish.Start", "")
+                                    .await?;
+                                log::info!("[ S->C ] [NetStream.Publish.Start]  app_name: {}, stream_name: {}",self.app_name,self.stream_name);
+
+                                self.common
+                                    .publish_to_channels(
+                                        self.app_name.clone(),
+                                        self.stream_name.clone(),
+                                        self.gop_num,
+                                    )
+                                    .await?;
+
+                                return Ok(())
                             }
-                        };
-
-                        let query = if let Some(query_val) = &self.query {
-                            query_val.clone()
-                        } else {
-                            String::from("none")
-                        };
-
-                        log::info!("[ S<-C ] [publish]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
-
-                        log::info!("[ S->C ] [stream begin]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
-
-                        let mut event_messages = EventMessagesWriter::new(AsyncBytesWriter::new(self.io.clone()));
-                        event_messages.write_stream_begin(*stream_id).await?;
-
-                        let mut netstream = NetStreamWriter::new(Arc::clone(&self.io));
-                        netstream
-                            .write_on_status(transaction_id, "status", "NetStream.Publish.Start", "")
-                            .await?;
-                        log::info!("[ S->C ] [NetStream.Publish.Start]  app_name: {}, stream_name: {}",self.app_name,self.stream_name);
-
-                        self.common
-                            .publish_to_channels(
-                                self.app_name.clone(),
-                                self.stream_name.clone(),
-                                self.gop_num,
-                            )
-                            .await?;
-
-                        return Ok(());
-                    }
-                } else {
-                    log::warn!("App_name not matched");
-                    println!("App_name not matched");
-                    return Err(
-                        SessionError {
-                            value: SessionErrorValue::NoAppName,
+                            Err(err) => {
+                                log::error!("on_publish error: {}", err);
+                                Err(SessionError {
+                                    value: SessionErrorValue::NoAppName,
+                                })
+                            }
                         }
-                    );
+                    }
+
+                    // if let Some(auth) = &self.auth {
+                    //     auth.authenticate(
+                    //         &self.stream_name,
+                    //         &self
+                    //             .query
+                    //             .as_ref()
+                    //             .map(|q| SecretCarrier::Query(q.to_string())),
+                    //         false,
+                    //     )?
+                    // }
+                    /*Now it can update the request url*/
+                    // self.common.request_url = self.get_request_url(stream_name_with_query);
+                    //
+                    // let _ = match other_values.remove(0) {
+                    //     Amf0ValueType::UTF8String(val) => val,
+                    //     _ => {
+                    //         return Err(SessionError {
+                    //             value: SessionErrorValue::Amf0ValueCountNotCorrect,
+                    //         });
+                    //     }
+                    // };
+                    //
+                    // let query = if let Some(query_val) = &self.query {
+                    //     query_val.clone()
+                    // } else {
+                    //     String::from("none")
+                    // };
+                    //
+                    // log::info!("[ S<-C ] [publish]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
+                    //
+                    // log::info!("[ S->C ] [stream begin]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
+                    //
+                    // let mut event_messages = EventMessagesWriter::new(AsyncBytesWriter::new(self.io.clone()));
+                    // event_messages.write_stream_begin(*stream_id).await?;
+                    //
+                    // log::info!("788");
+                    //
+                    // let mut netstream = NetStreamWriter::new(Arc::clone(&self.io));
+                    // netstream
+                    //     .write_on_status(transaction_id, "status", "NetStream.Publish.Start", "")
+                    //     .await?;
+                    // log::info!("[ S->C ] [NetStream.Publish.Start]  app_name: {}, stream_name: {}",self.app_name,self.stream_name);
+                    //
+                    // self.common
+                    //     .publish_to_channels(
+                    //         self.app_name.clone(),
+                    //         self.stream_name.clone(),
+                    //         self.gop_num,
+                    //     )
+                    //     .await?;
+                    //
+                    // return Ok(())
                 }
             })
         }else {
@@ -817,10 +854,5 @@ impl ServerSession {
                 }
             )
         }
-
-
-
-
-
     }
 }

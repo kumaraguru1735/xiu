@@ -33,14 +33,18 @@
   },
   "streams": [
     {
-      "app_name": "live",
-      "stream_name": "test",
-      "disabled": false
+      "name": "live/test",
+      "disabled": false,
+      "on_publish_url": "https://api.onecloudlive.in/api/v2/handler/check-stream"
     },
     {
-        "app_name": "live",
-        "stream_name": "test2",
-        "disabled": false
+      "name": "advika/advika",
+      "disabled": false,
+      "on_publish_url": "https://api.onecloudlive.in/api/v2/handler/check-stream"
+    },
+    {
+      "name": "live/test2",
+      "disabled": true
     }
   ]
 }
