@@ -9,6 +9,7 @@ readme = "README.md"
 categories = ["multimedia", "multimedia::video", 'multimedia::audio']
 keywords = ["rtmp", "hls", "httpflv", "video", "streaming"]
 edition = "2018"
+
 [dependencies]
 toml = "0.8.19"
 serde_derive = "1.0.204"
@@ -31,18 +32,17 @@ streamhub = { path = "../../library/streamhub/" }
 commonlib = { path = "../../library/common/" }
 rtmp = { path = "../../protocol/rtmp/" }
 http = { path = "../../protocol/http/" }
+#pulse = { path = "../../application/pulse/" }
 base64 = "0.21.2"
 tower = "0.4.13"
 reqwest = "0.11.24"
-sysinfo="0.18.2"
-pnet = "0.35.0"
 
 [features]
 default = ["std"]
 std = ["serde"]
 
 [dependencies.tokio]
-version = "1.26.0"
+version = "1.39.2"
 default-features = false
 #features = ["rt-core", "rt-threaded", "macros", "time","sync"]
 features = ["full"]
