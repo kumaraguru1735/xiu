@@ -375,11 +375,13 @@ pub enum StatisticData {
         id: Uuid,
         remote_addr: String,
         start_time: DateTime<Local>,
+        user_agent: Option<String>,
     },
     Subscriber {
         id: Uuid,
         remote_addr: String,
         sub_type: SubscribeType,
         start_time: DateTime<Local>,
+        user_agent: Option<String>,
     },
 }

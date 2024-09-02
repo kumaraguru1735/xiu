@@ -305,18 +305,21 @@ impl StreamDataTransceiver {
                     id,
                     remote_addr,
                     start_time,
+                    user_agent,
                 } => {
                     let publisher = &mut statistics_data.lock().await.publisher;
                     publisher.id = id;
                     publisher.remote_address = remote_addr;
 
                     publisher.start_time = start_time;
+                    publisher.user_agent = user_agent;
                 }
                 StatisticData::Subscriber {
                     id,
                     remote_addr,
                     sub_type,
                     start_time,
+                    user_agent,
                 } => {
                     let subscriber = &mut statistics_data.lock().await.subscribers;
                     let sub = StatisticSubscriber {
@@ -327,6 +330,7 @@ impl StreamDataTransceiver {
                         send_bitrate: 0,
                         send_bytes: 0,
                         total_send_bytes: 0,
+                        user_agent: user_agent,
                     };
                     subscriber.push(sub);
                 }

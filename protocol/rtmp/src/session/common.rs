@@ -366,6 +366,7 @@ impl Common {
                 remote_addr: self.remote_addr.unwrap().to_string(),
                 start_time: chrono::Local::now(),
                 sub_type: SubscribeType::PlayerRtmp,
+                user_agent: String::default(),
             };
             if let Err(err) = sender.send(statistic_subscriber) {
                 log::error!("send statistic_subscriber err: {}", err);
@@ -429,6 +430,7 @@ impl Common {
                 id: self.session_id,
                 remote_addr,
                 start_time: chrono::Local::now(),
+                user_agent: String::default(),
             };
             if let Err(err) = sender.send(statistic_publisher) {
                 log::error!("send statistic_publisher err: {}", err);

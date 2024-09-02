@@ -68,7 +68,7 @@ pub struct StatisticPublisher {
     pub id: Uuid,
     pub protocol: Protocol,
     pub name: String,
-    // identifier: StreamIdentifier,
+    pub user_agent: String,
     pub start_time: DateTime<Local>,
     pub tracks: Tracks,
     pub remote_address: String,
@@ -95,6 +95,7 @@ pub struct StatisticSubscriber {
     pub start_time: DateTime<Local>,
     pub remote_address: String,
     pub sub_type: SubscribeType,
+    pub user_agent: String,
     /*used for caculate the send_bitrate*/
     #[serde(skip_serializing)]
     pub send_bytes: usize,

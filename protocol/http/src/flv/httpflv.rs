@@ -279,6 +279,7 @@ impl HttpFlv {
                 remote_addr: self.remote_addr.to_string(),
                 start_time: chrono::Local::now(),
                 sub_type: SubscribeType::PlayerHttpFlv,
+                user_agent: String::new(),
             };
             if let Err(err) = sender.send(statistic_subscriber) {
                 log::error!("send statistic_subscriber err: {}", err);
