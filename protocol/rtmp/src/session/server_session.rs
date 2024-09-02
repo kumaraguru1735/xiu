@@ -736,101 +736,64 @@ impl ServerSession {
                             .json(&json!({"name": stream.name, "ip": ""}))
                             .send()
                             .await;
-                        return match response {
+                        match response {
                             Ok(resp)  => {
-                                log::info!("on_publish success: {:?}", resp);
-                                self.common.request_url = self.get_request_url(stream_name_with_query);
-
-                                let _ = match other_values.remove(0) {
-                                    Amf0ValueType::UTF8String(val) => val,
-                                    _ => {
-                                        return Err(SessionError {
-                                            value: SessionErrorValue::Amf0ValueCountNotCorrect,
-                                        });
-                                    }
-                                };
-
-                                let query = if let Some(query_val) = &self.query {
-                                    query_val.clone()
-                                } else {
-                                    String::from("none")
-                                };
-
-                                log::info!("[ S<-C ] [publish]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
-
-                                log::info!("[ S->C ] [stream begin]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
-
-                                let mut event_messages = EventMessagesWriter::new(AsyncBytesWriter::new(self.io.clone()));
-                                event_messages.write_stream_begin(*stream_id).await?;
-
-                                log::info!("788");
-
-                                let mut netstream = NetStreamWriter::new(Arc::clone(&self.io));
-                                netstream
-                                    .write_on_status(transaction_id, "status", "NetStream.Publish.Start", "")
-                                    .await?;
-                                log::info!("[ S->C ] [NetStream.Publish.Start]  app_name: {}, stream_name: {}",self.app_name,self.stream_name);
-
-                                self.common
-                                    .publish_to_channels(
-                                        self.app_name.clone(),
-                                        self.stream_name.clone(),
-                                        self.gop_num,
-                                    )
-                                    .await?;
-
-                                return Ok(())
+                                log::log!(
+                                    log::Level::Info,
+                                    "on_publish response: {}",
+                                    resp.status()
+                                );
                             }
                             Err(err) => {
                                 log::error!("on_publish error: {}", err);
-                                Err(SessionError {
+                                return Err(SessionError {
                                     value: SessionErrorValue::NoAppName,
                                 })
                             }
                         }
-                    }else {
-                        self.common.request_url = self.get_request_url(stream_name_with_query);
-
-                        let _ = match other_values.remove(0) {
-                            Amf0ValueType::UTF8String(val) => val,
-                            _ => {
-                                return Err(SessionError {
-                                    value: SessionErrorValue::Amf0ValueCountNotCorrect,
-                                });
-                            }
-                        };
-
-                        let query = if let Some(query_val) = &self.query {
-                            query_val.clone()
-                        } else {
-                            String::from("none")
-                        };
-
-                        log::info!("[ S<-C ] [publish]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
-
-                        log::info!("[ S->C ] [stream begin]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
-
-                        let mut event_messages = EventMessagesWriter::new(AsyncBytesWriter::new(self.io.clone()));
-                        event_messages.write_stream_begin(*stream_id).await?;
-
-                        log::info!("788");
-
-                        let mut netstream = NetStreamWriter::new(Arc::clone(&self.io));
-                        netstream
-                            .write_on_status(transaction_id, "status", "NetStream.Publish.Start", "")
-                            .await?;
-                        log::info!("[ S->C ] [NetStream.Publish.Start]  app_name: {}, stream_name: {}",self.app_name,self.stream_name);
-
-                        self.common
-                            .publish_to_channels(
-                                self.app_name.clone(),
-                                self.stream_name.clone(),
-                                self.gop_num,
-                            )
-                            .await?;
-
-                        return Ok(())
                     }
+                    //if not on_publish url
+                    self.common.request_url = self.get_request_url(stream_name_with_query);
+
+                    let _ = match other_values.remove(0) {
+                        Amf0ValueType::UTF8String(val) => val,
+                        _ => {
+                            return Err(SessionError {
+                                value: SessionErrorValue::Amf0ValueCountNotCorrect,
+                            });
+                        }
+                    };
+
+                    let query = if let Some(query_val) = &self.query {
+                        query_val.clone()
+                    } else {
+                        String::from("none")
+                    };
+
+                    log::info!("[ S<-C ] [publish]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
+
+                    log::info!("[ S->C ] [stream begin]  app_name: {}, stream_name: {}, query: {}",self.app_name,self.stream_name,query);
+
+                    let mut event_messages = EventMessagesWriter::new(AsyncBytesWriter::new(self.io.clone()));
+                    event_messages.write_stream_begin(*stream_id).await?;
+
+                    log::info!("788");
+
+                    let mut netstream = NetStreamWriter::new(Arc::clone(&self.io));
+                    netstream
+                        .write_on_status(transaction_id, "status", "NetStream.Publish.Start", "")
+                        .await?;
+                    log::info!("[ S->C ] [NetStream.Publish.Start]  app_name: {}, stream_name: {}",self.app_name,self.stream_name);
+
+                    self.common
+                        .publish_to_channels(
+                            self.app_name.clone(),
+                            self.stream_name.clone(),
+                            self.gop_num,
+                        )
+                        .await?;
+
+                    return Ok(())
                 }
             }
             Err(SessionError {
