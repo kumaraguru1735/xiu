@@ -1,3 +1,4 @@
+use axum::routing::put;
 use axum::body::Body;
 use axum::extract::Path;
 use axum::http::{Request, StatusCode};
@@ -26,6 +27,7 @@ use {
 };
 
 //use pulse::run_stats;
+use commonlib::config::Streams;
 
 #[derive(serde::Serialize)]
 struct ApiResponse<T> {
@@ -150,6 +152,25 @@ impl ApiService {
         }
     }
 
+    // async fn add_stream(&self, stream: Streams) -> Json<ApiResponse<Value>> {
+    //     let hub_event = define::StreamHubEvent::ApiAddStream { stream };
+    //     match self.channel_event_producer.send(hub_event) {
+    //         Ok(_) => Json(ApiResponse {
+    //             success: true,
+    //             message: String::from("success"),
+    //             data: serde_json::json!(""),
+    //         }),
+    //         Err(err) => {
+    //             log::error!("send api add_stream event error: {}", err);
+    //             Json(ApiResponse {
+    //                 success: false,
+    //                 message: String::from("failed to send event"),
+    //                 data: serde_json::json!(""),
+    //             })
+    //         }
+    //     }
+    // }
+
     async fn kick_off_client(&self, id: KickOffClient) -> Json<ApiResponse<Value>> {
         match Uuid::from_str2(&id.uuid) {
             Some(id) => {
@@ -238,6 +259,10 @@ pub async fn run(
     let query_stream = move |Query(params): Query<QueryStream>| async move {
         api_query_stream.query_stream(params).await
     };
+    // let api_add_stream = api.clone();
+    // let add_stream = move |Json(stream): Json<Streams>| async move {
+    //     api_add_stream.add_stream(stream).await
+    // };
 
     let api_kick_off = api.clone();
     let kick_off = move |Path(id): Path<String>| async move {
@@ -253,6 +278,7 @@ pub async fn run(
         .route("/", get(root))
         .route("/api/streams", get(query_streams))
         .route("/api/stream", get(query_stream))
+        // .route("/api/stream", put(add_stream))
         .route("/api/session/:id", delete(kick_off))
         // .route("/api/pulse", get(pulse))
         .layer(ServiceBuilder::new().layer(middleware::from_fn(move |req, next| {

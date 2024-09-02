@@ -45,6 +45,10 @@
     {
       "name": "live/test2",
       "disabled": true
+    },
+    {
+      "name": "live/test3",
+      "disabled": false
     }
   ]
 }
