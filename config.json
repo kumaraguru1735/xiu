@@ -9,6 +9,9 @@
     "port": [8080],
     "need_record": false
   },
+  "api": {
+    "port": 9090
+  },
   "httpflv_auth": {
     "pull_enabled": true,
     "algorithm": "simple"

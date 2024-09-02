@@ -90,8 +90,8 @@ impl Service {
     async fn start_http_api_server(&mut self, stream_hub: &mut StreamsHub, username: String, password: String) -> Result<()> {
         let producer = stream_hub.get_hub_event_sender();
 
-        let http_api_port = if let Some(httpapi) = &self.cfg.httpapi {
-            httpapi.port
+        let http_api_port = if let Some(api) = &self.cfg.api {
+            api.port
         } else {
             8000
         };
