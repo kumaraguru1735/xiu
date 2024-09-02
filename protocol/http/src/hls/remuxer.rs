@@ -1,8 +1,8 @@
+use streamhub::stream::Protocol;
 use {
     super::{errors::HlsError, flv_data_receiver::FlvDataReceiver},
     streamhub::{
         define::{BroadcastEvent, BroadcastEventReceiver, StreamHubEventSender},
-        stream::StreamIdentifier,
     },
 };
 
@@ -29,11 +29,13 @@ impl HlsRemuxer {
         loop {
             let val = self.client_event_consumer.recv().await?;
             match val {
-                BroadcastEvent::Publish { identifier, protocol,name } => {
-                    if let StreamIdentifier::Rtmp {
-                        app_name,
-                        stream_name,
-                    } = identifier
+                BroadcastEvent::Publish { protocol: Protocol::Rtmp, name } => {
+                    let (app_name, stream_name) = {
+                        let mut iter = name.split('/');
+                        let app_name = iter.next().unwrap_or_default();
+                        let stream_name = iter.next().unwrap_or_default();
+                        (app_name.to_string(), stream_name.to_string())
+                    };
                     {
                         let mut rtmp_subscriber = FlvDataReceiver::new(
                             app_name,

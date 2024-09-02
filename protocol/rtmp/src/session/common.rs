@@ -29,7 +29,6 @@ use {
         },
         errors::{StreamHubError, StreamHubErrorValue},
         statistics::StatisticsStream,
-        stream::StreamIdentifier,
         utils::Uuid,
     },
     tokio::sync::{mpsc, Mutex},
@@ -340,17 +339,11 @@ impl Common {
             self.session_id
         );
 
-        let identifier = StreamIdentifier::Rtmp {
-            app_name: app_name.clone(),
-            stream_name: stream_name.clone(),
-        };
-
         let (event_result_sender, event_result_receiver) = oneshot::channel();
 
         let subscribe_event = StreamHubEvent::Subscribe {
             protocol: Protocol::Rtmp,
-            name: format!("{}/{}", app_name.clone(), stream_name.clone()),
-            identifier,
+            name: format!("{}/{}", app_name, stream_name),
             info: self.get_subscriber_info(),
             result_sender: event_result_sender,
         };
@@ -389,15 +382,9 @@ impl Common {
         app_name: String,
         stream_name: String,
     ) -> Result<(), SessionError> {
-        let identifier = StreamIdentifier::Rtmp {
-            app_name: app_name.clone(),
-            stream_name: stream_name.clone(),
-        };
-
         let subscribe_event = StreamHubEvent::UnSubscribe {
             protocol: Protocol::Rtmp,
             name: format!("{}/{}", app_name, stream_name),
-            identifier,
             info: self.get_subscriber_info(),
         };
         if let Err(err) = self.event_producer.send(subscribe_event) {
@@ -421,10 +408,6 @@ impl Common {
         let publish_event = StreamHubEvent::Publish {
             protocol: Protocol::Rtmp,
             name: format!("{}/{}", app_name, stream_name),
-            identifier: StreamIdentifier::Rtmp {
-                app_name: app_name.clone(),
-                stream_name: stream_name.clone(),
-            },
             info,
             stream_handler: self.stream_handler.clone(),
             result_sender: event_result_sender,
@@ -471,10 +454,6 @@ impl Common {
         let unpublish_event = StreamHubEvent::UnPublish {
             protocol: Protocol::Rtmp,
             name: format!("{}/{}", app_name.clone(), stream_name.clone()),
-            identifier: StreamIdentifier::Rtmp {
-                app_name: app_name.clone(),
-                stream_name: stream_name.clone(),
-            },
             info: self.get_publisher_info(),
         };
 

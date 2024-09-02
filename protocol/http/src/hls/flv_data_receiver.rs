@@ -12,7 +12,6 @@ use {
             FrameData, FrameDataReceiver, NotifyInfo, StreamHubEvent, StreamHubEventSender,
             SubscribeType, SubscriberInfo,
         },
-        stream::StreamIdentifier,
         utils::{RandomDigitCount, Uuid},
     },
     tokio::{sync::mpsc, time::sleep},
@@ -109,17 +108,11 @@ impl FlvDataReceiver {
             },
         };
 
-        let identifier = StreamIdentifier::Rtmp {
-            app_name: app_name.clone(),
-            stream_name: stream_name.clone(),
-        };
-
         let (event_result_sender, event_result_receiver) = oneshot::channel();
 
         let subscribe_event = StreamHubEvent::Subscribe {
             protocol: Protocol::Rtmp,
             name: format!("{}/{}", app_name.clone(), stream_name.clone()),
-            identifier,
             info: sub_info,
             result_sender: event_result_sender,
         };
@@ -149,15 +142,9 @@ impl FlvDataReceiver {
             },
         };
 
-        let identifier = StreamIdentifier::Rtmp {
-            app_name: self.app_name.clone(),
-            stream_name: self.stream_name.clone(),
-        };
-
         let subscribe_event = StreamHubEvent::UnSubscribe {
             protocol: Protocol::Rtmp,
             name: format!("{}/{}", self.app_name.clone(), self.stream_name.clone()),
-            identifier,
             info: sub_info,
         };
         if let Err(err) = self.event_producer.send(subscribe_event) {

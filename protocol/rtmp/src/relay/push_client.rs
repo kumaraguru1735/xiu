@@ -1,9 +1,9 @@
+use streamhub::stream::Protocol;
 use {
     super::errors::ClientError,
     crate::session::client_session::{ClientSession, ClientType},
     streamhub::{
         define::{StreamHubEventSender, BroadcastEvent, BroadcastEventReceiver},
-        stream::StreamIdentifier,
     },
     tokio::net::TcpStream,
 };
@@ -35,11 +35,13 @@ impl PushClient {
             let val = self.client_event_consumer.recv().await?;
 
             match val {
-                BroadcastEvent::Publish { identifier, protocol, name } => {
-                    if let StreamIdentifier::Rtmp {
-                        app_name,
-                        stream_name,
-                    } = identifier
+                BroadcastEvent::Publish { protocol: Protocol::Rtmp, name } => {
+                    let (app_name, stream_name) = {
+                        let mut iter = name.split('/');
+                        let app_name = iter.next().unwrap_or_default();
+                        let stream_name = iter.next().unwrap_or_default();
+                        (app_name.to_string(), stream_name.to_string())
+                    };
                     {
                         log::info!(
                             "publish app_name: {} stream_name: {} address: {}",

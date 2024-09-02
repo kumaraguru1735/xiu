@@ -12,7 +12,6 @@ use {
         SubDataType, SubscribeType, SubscriberInfo,
     },
     streamhub::{
-        stream::StreamIdentifier,
         utils::{RandomDigitCount, Uuid},
         stream::Protocol
     },
@@ -230,15 +229,9 @@ impl HttpFlv {
             },
         };
 
-        let identifier = StreamIdentifier::Rtmp {
-            app_name: self.app_name.clone(),
-            stream_name: self.stream_name.clone(),
-        };
-
         let subscribe_event = StreamHubEvent::UnSubscribe {
             protocol: Protocol::Rtmp,
-            name : format!("{}/{}", self.app_name.clone(), self.stream_name.clone()),
-            identifier,
+            name : format!("{}/{}", self.app_name, self.stream_name),
             info: sub_info,
         };
         if let Err(err) = self.event_producer.send(subscribe_event) {
@@ -259,17 +252,11 @@ impl HttpFlv {
             },
         };
 
-        let identifier = StreamIdentifier::Rtmp {
-            app_name: self.app_name.clone(),
-            stream_name: self.stream_name.clone(),
-        };
-
         let (event_result_sender, event_result_receiver) = oneshot::channel();
 
         let subscribe_event = StreamHubEvent::Subscribe {
             protocol: Protocol::Rtmp,
-            name : format!("{}/{}", self.app_name.clone(), self.stream_name.clone()),
-            identifier,
+            name : format!("{}/{}", self.app_name, self.stream_name),
             info: sub_info,
             result_sender: event_result_sender,
         };

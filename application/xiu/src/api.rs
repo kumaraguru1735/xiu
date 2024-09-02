@@ -20,7 +20,6 @@ use {
     std::sync::Arc,
     streamhub::{
         define::{self, StreamHubEventSender},
-        stream::StreamIdentifier,
         utils::Uuid,
     },
     tokio::{self, sync::oneshot},
@@ -88,7 +87,6 @@ impl ApiService {
             top_n: params.top,
             protocol: None,
             name: None,
-            identifier: None,
             uuid: None,
             result_sender,
         };
@@ -117,17 +115,11 @@ impl ApiService {
     }
 
     async fn query_stream(&self, stream: QueryStream) -> Json<ApiResponse<Value>> {
-        let identifier = StreamIdentifier::Rtmp {
-            app_name: stream.app_name.clone(),
-            stream_name: stream.stream_name.clone(),
-        };
-
         let (result_sender, result_receiver) = oneshot::channel();
         let hub_event = define::StreamHubEvent::ApiStatistic {
             top_n: None,
             protocol: Some(streamhub::stream::Protocol::Rtmp),
             name: Some(format!("{}/{}", stream.app_name, stream.stream_name)),
-            identifier: Some(identifier),
             uuid: None,
             result_sender,
         };

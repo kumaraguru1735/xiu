@@ -1,6 +1,5 @@
 use crate::stream::Protocol;
 use {
-    super::stream::StreamIdentifier,
     crate::{define::SubscribeType, utils::Uuid},
     chrono::{DateTime, Local},
     serde::Serialize,
@@ -59,14 +58,19 @@ pub struct StatisticsStream {
     pub total_send_bytes: usize,
 }
 #[derive(Debug, Clone, Serialize, Default)]
+pub struct Tracks {
+    pub video: VideoInfo,
+    pub audio: AudioInfo,
+}
+
+#[derive(Debug, Clone, Serialize, Default)]
 pub struct StatisticPublisher {
     pub id: Uuid,
     pub protocol: Protocol,
     pub name: String,
-    identifier: StreamIdentifier,
+    // identifier: StreamIdentifier,
     pub start_time: DateTime<Local>,
-    pub video: VideoInfo,
-    pub audio: AudioInfo,
+    pub tracks: Tracks,
     pub remote_address: String,
     /*used for caculate the recv_bitrate*/
     #[serde(skip_serializing)]
@@ -77,11 +81,10 @@ pub struct StatisticPublisher {
 }
 
 impl StatisticPublisher {
-    pub fn new(protocol: Protocol, name: String, identifier: StreamIdentifier) -> Self {
+    pub fn new(protocol: Protocol, name: String) -> Self {
         Self {
             protocol,
             name,
-            identifier,
             ..Default::default()
         }
     }
@@ -103,9 +106,9 @@ pub struct StatisticSubscriber {
 }
 
 impl StatisticsStream {
-    pub fn new(protocol: Protocol, name: String, identifier: StreamIdentifier) -> Self {
+    pub fn new(protocol: Protocol, name: String) -> Self {
         Self {
-            publisher: StatisticPublisher::new(protocol, name, identifier),
+            publisher: StatisticPublisher::new(protocol, name),
             ..Default::default()
         }
     }
@@ -156,17 +159,17 @@ impl StatisticsCaculate {
     async fn caculate(&mut self) {
         let mut stream_statistics_clone = self.stream.lock().await;
 
-        stream_statistics_clone.publisher.video.bitrate =
-            stream_statistics_clone.publisher.video.recv_bytes * 8 / 5000;
-        stream_statistics_clone.publisher.video.recv_bytes = 0;
+        stream_statistics_clone.publisher.tracks.video.bitrate =
+            stream_statistics_clone.publisher.tracks.video.recv_bytes * 8 / 5000;
+        stream_statistics_clone.publisher.tracks.video.recv_bytes = 0;
 
-        stream_statistics_clone.publisher.video.frame_rate =
-            stream_statistics_clone.publisher.video.recv_frame_count / 5;
-        stream_statistics_clone.publisher.video.recv_frame_count = 0;
+        stream_statistics_clone.publisher.tracks.video.frame_rate =
+            stream_statistics_clone.publisher.tracks.video.recv_frame_count / 5;
+        stream_statistics_clone.publisher.tracks.video.recv_frame_count = 0;
 
-        stream_statistics_clone.publisher.audio.bitrate =
-            stream_statistics_clone.publisher.audio.recv_bytes * 8 / 5000;
-        stream_statistics_clone.publisher.audio.recv_bytes = 0;
+        stream_statistics_clone.publisher.tracks.audio.bitrate =
+            stream_statistics_clone.publisher.tracks.audio.recv_bytes * 8 / 5000;
+        stream_statistics_clone.publisher.tracks.audio.recv_bytes = 0;
 
         stream_statistics_clone.publisher.recv_bitrate =
             stream_statistics_clone.publisher.recv_bytes * 8 / 5000;

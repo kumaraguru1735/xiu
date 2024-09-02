@@ -8,7 +8,6 @@ use crate::utils;
 use {
     super::errors::StreamHubError,
     crate::statistics::StatisticsStream,
-    crate::stream::StreamIdentifier,
     async_trait::async_trait,
     bytes::BytesMut,
     serde::ser::SerializeStruct,
@@ -219,25 +218,21 @@ pub enum StreamHubEventMessage {
     Subscribe {
         protocol: Protocol,
         name: String,
-        identifier: StreamIdentifier,
         info: SubscriberInfo,
     },
     UnSubscribe {
         protocol: Protocol,
         name: String,
-        identifier: StreamIdentifier,
         info: SubscriberInfo,
     },
     Publish {
         protocol: Protocol,
         name: String,
-        identifier: StreamIdentifier,
         info: PublisherInfo,
     },
     UnPublish {
         protocol: Protocol,
         name: String,
-        identifier: StreamIdentifier,
         info: PublisherInfo,
     },
     NotSupport {},
@@ -248,7 +243,6 @@ pub enum StreamHubEvent {
     Subscribe {
         protocol: Protocol,
         name: String,
-        identifier: StreamIdentifier,
         info: SubscriberInfo,
         #[serde(skip_serializing)]
         result_sender: SubEventExecuteResultSender,
@@ -256,13 +250,11 @@ pub enum StreamHubEvent {
     UnSubscribe {
         protocol: Protocol,
         name: String,
-        identifier: StreamIdentifier,
         info: SubscriberInfo,
     },
     Publish {
         protocol: Protocol,
         name: String,
-        identifier: StreamIdentifier,
         info: PublisherInfo,
         #[serde(skip_serializing)]
         result_sender: PubEventExecuteResultSender,
@@ -272,7 +264,6 @@ pub enum StreamHubEvent {
     UnPublish {
         protocol: Protocol,
         name: String,
-        identifier: StreamIdentifier,
         info: PublisherInfo,
     },
     #[serde(skip_serializing)]
@@ -280,7 +271,6 @@ pub enum StreamHubEvent {
         top_n: Option<usize>,
         protocol: Option<Protocol>,
         name: Option<String>,
-        identifier: Option<StreamIdentifier>,
         uuid: Option<Uuid>,
         result_sender: StatisticApiResultSender,
     },
@@ -291,7 +281,6 @@ pub enum StreamHubEvent {
     Request {
         protocol: Protocol,
         name: String,
-        identifier: StreamIdentifier,
         sender: InformationSender,
     },
 }
@@ -299,17 +288,17 @@ pub enum StreamHubEvent {
 impl StreamHubEvent {
     pub fn to_message(&self) -> StreamHubEventMessage {
         match self {
-            StreamHubEvent::Subscribe { protocol, name, identifier, info, result_sender: _result_sender } => {
-                StreamHubEventMessage::Subscribe { protocol:protocol.clone(), name:name.clone(), identifier: identifier.clone(), info: info.clone() }
+            StreamHubEvent::Subscribe { protocol, name, info, result_sender: _result_sender } => {
+                StreamHubEventMessage::Subscribe { protocol:protocol.clone(), name:name.clone(), info: info.clone() }
             }
-            StreamHubEvent::UnSubscribe {protocol, name, identifier, info } => {
-                StreamHubEventMessage::UnSubscribe { protocol:protocol.clone(), name:name.clone(),identifier: identifier.clone(), info: info.clone() }
+            StreamHubEvent::UnSubscribe {protocol, name, info } => {
+                StreamHubEventMessage::UnSubscribe { protocol:protocol.clone(), name:name.clone(), info: info.clone() }
             }
-            StreamHubEvent::Publish {protocol, name, identifier, info, result_sender: _result_sender, stream_handler: _stream_handler } => {
-                StreamHubEventMessage::Publish { protocol:protocol.clone(), name:name.clone(),identifier: identifier.clone(), info: info.clone() }
+            StreamHubEvent::Publish {protocol, name, info, result_sender: _result_sender, stream_handler: _stream_handler } => {
+                StreamHubEventMessage::Publish { protocol:protocol.clone(), name:name.clone(), info: info.clone() }
             }
-            StreamHubEvent::UnPublish {protocol, name, identifier, info } => {
-                StreamHubEventMessage::UnPublish { protocol:protocol.clone(), name:name.clone(), identifier: identifier.clone(), info: info.clone() }
+            StreamHubEvent::UnPublish {protocol, name, info } => {
+                StreamHubEventMessage::UnPublish { protocol:protocol.clone(), name:name.clone(), info: info.clone() }
             }
             _ => {
                 StreamHubEventMessage::NotSupport {}
@@ -348,11 +337,11 @@ impl fmt::Display for TransceiverEvent {
 #[derive(Debug, Clone)]
 pub enum BroadcastEvent {
     /*Need publish(push) a stream to other rtmp server*/
-    Publish { identifier: StreamIdentifier, protocol: Protocol, name: String },
-    UnPublish { identifier: StreamIdentifier, protocol: Protocol, name: String },
+    Publish { protocol: Protocol, name: String },
+    UnPublish { protocol: Protocol, name: String },
     /*Need subscribe(pull) a stream from other rtmp server*/
-    Subscribe { identifier: StreamIdentifier, protocol: Protocol, name: String },
-    UnSubscribe { identifier: StreamIdentifier, protocol: Protocol, name: String },
+    Subscribe { protocol: Protocol, name: String },
+    UnSubscribe { protocol: Protocol, name: String },
 }
 
 pub enum StatisticData {
