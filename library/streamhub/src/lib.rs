@@ -1,3 +1,4 @@
+use crate::stream::Protocol;
 use define::{
     FrameDataReceiver, PacketDataReceiver, PacketDataSender, StatisticData, StatisticDataReceiver,
     StatisticDataSender,
@@ -55,6 +56,8 @@ pub struct StreamDataTransceiver {
 
 impl StreamDataTransceiver {
     fn new(
+        protocol: Protocol,
+        name: String,
         data_receiver: DataReceiver,
         event_receiver: UnboundedReceiver<TransceiverEvent>,
         identifier: StreamIdentifier,
@@ -69,7 +72,7 @@ impl StreamDataTransceiver {
             id_to_frame_sender: Arc::new(Mutex::new(HashMap::new())),
             id_to_packet_sender: Arc::new(Mutex::new(HashMap::new())),
             stream_handler: h,
-            statistic_data: Arc::new(Mutex::new(StatisticsStream::new(identifier))),
+            statistic_data: Arc::new(Mutex::new(StatisticsStream::new(protocol, name, identifier))),
         }
     }
 
@@ -575,6 +578,8 @@ impl StreamsHub {
             let message = event.to_message();
             match event {
                 StreamHubEvent::Publish {
+                    protocol,
+                    name,
                     identifier,
                     info,
                     result_sender,
@@ -621,7 +626,7 @@ impl StreamsHub {
                     };
 
                     let result = match self
-                        .publish(identifier.clone(), receiver, stream_handler)
+                        .publish(protocol.clone(), name.clone(), identifier.clone(), receiver, stream_handler)
                         .await
                     {
                         Ok(statistic_data_sender) => {
@@ -629,7 +634,7 @@ impl StreamsHub {
                                 notifier.on_publish_notify(&message).await;
                             }
                             self.un_pub_sub_events
-                                .insert(info.id, StreamHubEvent::UnPublish { identifier, info });
+                                .insert(info.id, StreamHubEvent::UnPublish { protocol, name, identifier, info });
 
                             Ok((frame_sender, packet_sender, Some(statistic_data_sender)))
                         }
@@ -645,10 +650,12 @@ impl StreamsHub {
                 }
 
                 StreamHubEvent::UnPublish {
+                    protocol,
+                    name,
                     identifier,
                     info: _,
                 } => {
-                    if let Err(err) = self.unpublish(&identifier) {
+                    if let Err(err) = self.unpublish(protocol, name, &identifier) {
                         log::error!(
                             "event_loop Unpublish err: {} with identifier: {}",
                             err,
@@ -661,6 +668,8 @@ impl StreamsHub {
                     }
                 }
                 StreamHubEvent::Subscribe {
+                    protocol,
+                    name,
                     identifier,
                     info,
                     result_sender,
@@ -696,14 +705,14 @@ impl StreamsHub {
                         }
                     };
 
-                    let rv = match self.subscribe(&identifier, info_clone, sender).await {
+                    let rv = match self.subscribe(protocol.clone(), name.clone(), &identifier, info_clone, sender).await {
                         Ok(statistic_data_sender) => {
                             if let Some(notifier) = &self.notifier {
                                 notifier.on_play_notify(&message).await;
                             }
 
                             self.un_pub_sub_events
-                                .insert(sub_id, StreamHubEvent::UnSubscribe { identifier, info });
+                                .insert(sub_id, StreamHubEvent::UnSubscribe {protocol, name, identifier, info });
                             Ok((receiver, Some(statistic_data_sender)))
                         }
                         Err(err) => {
@@ -716,8 +725,8 @@ impl StreamsHub {
                         log::error!("event_loop Subscribe error: The receiver dropped.")
                     }
                 }
-                StreamHubEvent::UnSubscribe { identifier, info } => {
-                    if self.unsubscribe(&identifier, info).is_ok() {
+                StreamHubEvent::UnSubscribe { protocol, name, identifier, info } => {
+                    if self.unsubscribe(protocol, name, &identifier, info).is_ok() {
                         if let Some(notifier) = &self.notifier {
                             notifier.on_stop_notify(&message).await;
                         }
@@ -726,12 +735,14 @@ impl StreamsHub {
 
                 StreamHubEvent::ApiStatistic {
                     top_n,
+                    protocol,
+                    name,
                     identifier,
                     uuid,
                     result_sender,
                 } => {
                     log::info!("api_statistic1:  stream identifier: {:?}", identifier);
-                    let result = self.api_statistic(top_n, identifier, uuid).await.unwrap_or_else(|err| {
+                    let result = self.api_statistic(top_n, protocol, name, identifier, uuid).await.unwrap_or_else(|err| {
                         log::error!("event_loop api error: {}", err);
                         json!(err.to_string())
                     });
@@ -746,8 +757,8 @@ impl StreamsHub {
                         log::error!("api_kick_off_client api error: {}", err);
                     }
                 }
-                StreamHubEvent::Request { identifier, sender } => {
-                    if let Err(err) = self.request(&identifier, sender) {
+                StreamHubEvent::Request { protocol, name, identifier, sender  } => {
+                    if let Err(err) = self.request(protocol,name, &identifier, sender) {
                         log::error!("event_loop request error: {}", err);
                     }
                 }
@@ -757,6 +768,8 @@ impl StreamsHub {
 
     fn request(
         &mut self,
+        protocol: Protocol,
+        name: String,
         identifier: &StreamIdentifier,
         sender: mpsc::UnboundedSender<Information>,
     ) -> Result<(), StreamHubError> {
@@ -773,6 +786,8 @@ impl StreamsHub {
     async fn api_statistic(
         &mut self,
         top_n: Option<usize>,
+        protocol: Option<Protocol>,
+        name: Option<String>,
         identifier: Option<StreamIdentifier>,
         uuid: Option<Uuid>,
     ) -> Result<Value, StreamHubError> {
@@ -834,10 +849,12 @@ impl StreamsHub {
     fn api_kick_off_client(&mut self, uid: Uuid) -> Result<(), StreamHubError> {
         if let Some(event) = self.un_pub_sub_events.get(&uid) {
             match event {
-                StreamHubEvent::UnPublish { identifier, info } => {
+                StreamHubEvent::UnPublish { protocol, name, identifier, info } => {
                     if self
                         .hub_event_sender
                         .send(StreamHubEvent::UnPublish {
+                            protocol: protocol.clone(),
+                            name: name.clone(),
                             identifier: identifier.clone(),
                             info: info.clone(),
                         })
@@ -848,10 +865,12 @@ impl StreamsHub {
                         });
                     }
                 }
-                StreamHubEvent::UnSubscribe { identifier, info } => {
+                StreamHubEvent::UnSubscribe { protocol, name,identifier, info } => {
                     if self
                         .hub_event_sender
                         .send(StreamHubEvent::UnSubscribe {
+                            protocol: protocol.clone(),
+                            name: name.clone(),
                             identifier: identifier.clone(),
                             info: info.clone(),
                         })
@@ -876,6 +895,8 @@ impl StreamsHub {
     //player subscribe a stream
     pub async fn subscribe(
         &mut self,
+        protocol: Protocol,
+        name: String,
         identifer: &StreamIdentifier,
         sub_info: SubscriberInfo,
         sender: DataSender,
@@ -900,6 +921,8 @@ impl StreamsHub {
 
             let client_event = BroadcastEvent::Subscribe {
                 identifier: identifer.clone(),
+                protocol,
+                name,
             };
 
             //send subscribe info to pull clients
@@ -917,6 +940,8 @@ impl StreamsHub {
 
     pub fn unsubscribe(
         &mut self,
+        protocol: Protocol,
+        name: String,
         identifer: &StreamIdentifier,
         sub_info: SubscriberInfo,
     ) -> Result<(), StreamHubError> {
@@ -942,6 +967,8 @@ impl StreamsHub {
     //publish a stream
     pub async fn publish(
         &mut self,
+        protocol: Protocol,
+        name: String,
         identifier: StreamIdentifier,
         receiver: DataReceiver,
         handler: Arc<dyn TStreamHandler>,
@@ -954,7 +981,7 @@ impl StreamsHub {
 
         let (event_sender, event_receiver) = mpsc::unbounded_channel();
         let transceiver =
-            StreamDataTransceiver::new(receiver, event_receiver, identifier.clone(), handler);
+            StreamDataTransceiver::new(protocol.clone(), name.clone(), receiver, event_receiver, identifier.clone(), handler);
 
         let statistic_data_sender = transceiver.get_statistics_data_sender();
         let identifier_clone = identifier.clone();
@@ -972,7 +999,7 @@ impl StreamsHub {
         self.streams.insert(identifier.clone(), event_sender);
 
         if self.rtmp_push_enabled || self.hls_enabled || self.rtmp_remuxer_enabled {
-            let client_event = BroadcastEvent::Publish { identifier };
+            let client_event = BroadcastEvent::Publish { identifier, protocol, name };
 
             //send publish info to push clients
             self.client_event_sender
@@ -985,7 +1012,7 @@ impl StreamsHub {
         Ok(statistic_data_sender)
     }
 
-    fn unpublish(&mut self, identifier: &StreamIdentifier) -> Result<(), StreamHubError> {
+    fn unpublish(&mut self, protocol: Protocol, name: String, identifier: &StreamIdentifier) -> Result<(), StreamHubError> {
         match self.streams.get_mut(identifier) {
             Some(producer) => {
                 let event = TransceiverEvent::UnPublish {};

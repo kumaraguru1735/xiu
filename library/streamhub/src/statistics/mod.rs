@@ -1,3 +1,4 @@
+use crate::stream::Protocol;
 use {
     super::stream::StreamIdentifier,
     crate::{define::SubscribeType, utils::Uuid},
@@ -60,6 +61,8 @@ pub struct StatisticsStream {
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct StatisticPublisher {
     pub id: Uuid,
+    pub protocol: Protocol,
+    pub name: String,
     identifier: StreamIdentifier,
     pub start_time: DateTime<Local>,
     pub video: VideoInfo,
@@ -74,8 +77,10 @@ pub struct StatisticPublisher {
 }
 
 impl StatisticPublisher {
-    pub fn new(identifier: StreamIdentifier) -> Self {
+    pub fn new(protocol: Protocol, name: String, identifier: StreamIdentifier) -> Self {
         Self {
+            protocol,
+            name,
             identifier,
             ..Default::default()
         }
@@ -98,9 +103,9 @@ pub struct StatisticSubscriber {
 }
 
 impl StatisticsStream {
-    pub fn new(identifier: StreamIdentifier) -> Self {
+    pub fn new(protocol: Protocol, name: String, identifier: StreamIdentifier) -> Self {
         Self {
-            publisher: StatisticPublisher::new(identifier),
+            publisher: StatisticPublisher::new(protocol, name, identifier),
             ..Default::default()
         }
     }

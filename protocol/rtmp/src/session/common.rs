@@ -1,3 +1,4 @@
+use streamhub::stream::Protocol;
 use streamhub::define::{DataSender, StatisticData, StatisticDataSender};
 use tokio::sync::oneshot;
 
@@ -340,13 +341,15 @@ impl Common {
         );
 
         let identifier = StreamIdentifier::Rtmp {
-            app_name,
-            stream_name,
+            app_name: app_name.clone(),
+            stream_name: stream_name.clone(),
         };
 
         let (event_result_sender, event_result_receiver) = oneshot::channel();
 
         let subscribe_event = StreamHubEvent::Subscribe {
+            protocol: Protocol::Rtmp,
+            name: format!("{}/{}", app_name.clone(), stream_name.clone()),
             identifier,
             info: self.get_subscriber_info(),
             result_sender: event_result_sender,
@@ -387,11 +390,13 @@ impl Common {
         stream_name: String,
     ) -> Result<(), SessionError> {
         let identifier = StreamIdentifier::Rtmp {
-            app_name,
-            stream_name,
+            app_name: app_name.clone(),
+            stream_name: stream_name.clone(),
         };
 
         let subscribe_event = StreamHubEvent::UnSubscribe {
+            protocol: Protocol::Rtmp,
+            name: format!("{}/{}", app_name, stream_name),
             identifier,
             info: self.get_subscriber_info(),
         };
@@ -414,6 +419,8 @@ impl Common {
         let remote_addr = info.notify_info.remote_addr.clone();
 
         let publish_event = StreamHubEvent::Publish {
+            protocol: Protocol::Rtmp,
+            name: format!("{}/{}", app_name, stream_name),
             identifier: StreamIdentifier::Rtmp {
                 app_name: app_name.clone(),
                 stream_name: stream_name.clone(),
@@ -462,6 +469,8 @@ impl Common {
             stream_name
         );
         let unpublish_event = StreamHubEvent::UnPublish {
+            protocol: Protocol::Rtmp,
+            name: format!("{}/{}", app_name.clone(), stream_name.clone()),
             identifier: StreamIdentifier::Rtmp {
                 app_name: app_name.clone(),
                 stream_name: stream_name.clone(),

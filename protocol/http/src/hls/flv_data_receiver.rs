@@ -1,3 +1,4 @@
+use streamhub::stream::Protocol;
 use tokio::sync::oneshot;
 
 use {
@@ -109,13 +110,15 @@ impl FlvDataReceiver {
         };
 
         let identifier = StreamIdentifier::Rtmp {
-            app_name,
-            stream_name,
+            app_name: app_name.clone(),
+            stream_name: stream_name.clone(),
         };
 
         let (event_result_sender, event_result_receiver) = oneshot::channel();
 
         let subscribe_event = StreamHubEvent::Subscribe {
+            protocol: Protocol::Rtmp,
+            name: format!("{}/{}", app_name.clone(), stream_name.clone()),
             identifier,
             info: sub_info,
             result_sender: event_result_sender,
@@ -152,6 +155,8 @@ impl FlvDataReceiver {
         };
 
         let subscribe_event = StreamHubEvent::UnSubscribe {
+            protocol: Protocol::Rtmp,
+            name: format!("{}/{}", self.app_name.clone(), self.stream_name.clone()),
             identifier,
             info: sub_info,
         };

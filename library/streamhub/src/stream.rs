@@ -26,3 +26,12 @@ impl fmt::Display for StreamIdentifier {
         }
     }
 }
+
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize, Default)]
+pub enum Protocol {
+    #[default]
+    Unkonwn,
+    #[serde(rename = "rtmp")]
+    Rtmp,
+}

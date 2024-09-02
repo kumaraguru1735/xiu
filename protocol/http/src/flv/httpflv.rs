@@ -14,6 +14,7 @@ use {
     streamhub::{
         stream::StreamIdentifier,
         utils::{RandomDigitCount, Uuid},
+        stream::Protocol
     },
     tokio::sync::mpsc,
     xflv::amf0::amf0_writer::Amf0Writer,
@@ -235,6 +236,8 @@ impl HttpFlv {
         };
 
         let subscribe_event = StreamHubEvent::UnSubscribe {
+            protocol: Protocol::Rtmp,
+            name : format!("{}/{}", self.app_name.clone(), self.stream_name.clone()),
             identifier,
             info: sub_info,
         };
@@ -264,6 +267,8 @@ impl HttpFlv {
         let (event_result_sender, event_result_receiver) = oneshot::channel();
 
         let subscribe_event = StreamHubEvent::Subscribe {
+            protocol: Protocol::Rtmp,
+            name : format!("{}/{}", self.app_name.clone(), self.stream_name.clone()),
             identifier,
             info: sub_info,
             result_sender: event_result_sender,

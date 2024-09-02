@@ -29,7 +29,7 @@ impl HlsRemuxer {
         loop {
             let val = self.client_event_consumer.recv().await?;
             match val {
-                BroadcastEvent::Publish { identifier } => {
+                BroadcastEvent::Publish { identifier, protocol,name } => {
                     if let StreamIdentifier::Rtmp {
                         app_name,
                         stream_name,

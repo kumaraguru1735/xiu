@@ -32,6 +32,8 @@ impl PullClient {
             let event = self.client_event_consumer.recv().await?;
 
             if let BroadcastEvent::Subscribe {
+                protocol,
+                name,
                 identifier:
                     StreamIdentifier::Rtmp {
                         app_name,
