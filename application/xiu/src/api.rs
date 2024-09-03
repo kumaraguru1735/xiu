@@ -1,3 +1,5 @@
+use commonlib::config::save_config;
+use commonlib::config::load_config;
 use axum::routing::put;
 use axum::body::Body;
 use axum::extract::Path;
@@ -148,24 +150,109 @@ impl ApiService {
         }
     }
 
-    // async fn add_stream(&self, stream: Streams) -> Json<ApiResponse<Value>> {
-    //     let hub_event = define::StreamHubEvent::ApiAddStream { stream };
-    //     match self.channel_event_producer.send(hub_event) {
-    //         Ok(_) => Json(ApiResponse {
-    //             success: true,
-    //             message: String::from("success"),
-    //             data: serde_json::json!(""),
-    //         }),
-    //         Err(err) => {
-    //             log::error!("send api add_stream event error: {}", err);
-    //             Json(ApiResponse {
-    //                 success: false,
-    //                 message: String::from("failed to send event"),
-    //                 data: serde_json::json!(""),
-    //             })
-    //         }
-    //     }
-    // }
+
+    pub async fn add_stream(&self, stream: Streams) -> Json<ApiResponse<Value>> {
+        let config_path = "config.json";
+
+        // Load existing config
+        let mut config = match load_config(config_path) {
+            Ok(config) => config,
+            Err(err) => {
+                log::error!("Failed to load config: {}", err);
+                return Json(ApiResponse {
+                    success: false,
+                    message: String::from("failed to load config"),
+                    data: serde_json::json!(""),
+                });
+            }
+        };
+
+        // Unwrap or initialize the streams vector
+        let streams = config.streams.get_or_insert_with(Vec::new);
+
+        // Check if the stream exists by name and update or add it
+        if let Some(existing_stream) = streams.iter_mut().find(|s| s.name == stream.name) {
+            *existing_stream = stream.clone();  // Update existing stream
+        } else {
+            streams.push(stream.clone());  // Add new stream
+        }
+
+        // Save the updated config
+        match save_config(config_path, &config) {
+            Ok(_) => Json(ApiResponse {
+                success: true,
+                message: String::from("success"),
+                data: serde_json::json!(""),
+            }),
+            Err(err) => {
+                log::error!("Failed to save config: {}", err);
+                Json(ApiResponse {
+                    success: false,
+                    message: String::from("failed to save config"),
+                    data: serde_json::json!(""),
+                })
+            }
+        }
+    }
+
+    pub async fn delete_stream(&self, del_stream: Streams) -> Json<ApiResponse<Value>> {
+        let config_path = "config.json";
+
+        // Load existing config
+        let mut config = match load_config(config_path) {
+            Ok(config) => config,
+            Err(err) => {
+                log::error!("Failed to load config: {}", err);
+                return Json(ApiResponse {
+                    success: false,
+                    message: String::from("failed to load config"),
+                    data: serde_json::json!(""),
+                });
+            }
+        };
+
+        // Unwrap the streams vector or return an error if not initialized
+        let streams = match config.streams.as_mut() {
+            Some(streams) => streams,
+            None => {
+                return Json(ApiResponse {
+                    success: false,
+                    message: String::from("no streams available to delete"),
+                    data: serde_json::json!(""),
+                });
+            }
+        };
+
+        // Find and remove the stream by name
+        let original_len = streams.len();
+        streams.retain(|s| s.name != del_stream.name);
+
+        if streams.len() == original_len {
+            // No stream was deleted
+            return Json(ApiResponse {
+                success: false,
+                message: String::from("stream not found"),
+                data: serde_json::json!(""),
+            });
+        }
+
+        // Save the updated config
+        match save_config(config_path, &config) {
+            Ok(_) => Json(ApiResponse {
+                success: true,
+                message: String::from("stream deleted successfully"),
+                data: serde_json::json!(""),
+            }),
+            Err(err) => {
+                log::error!("Failed to save config: {}", err);
+                Json(ApiResponse {
+                    success: false,
+                    message: String::from("failed to save config"),
+                    data: serde_json::json!(""),
+                })
+            }
+        }
+    }
 
     async fn kick_off_client(&self, id: KickOffClient) -> Json<ApiResponse<Value>> {
         match Uuid::from_str2(&id.uuid) {
@@ -255,10 +342,15 @@ pub async fn run(
     let query_stream = move |Query(params): Query<QueryStream>| async move {
         api_query_stream.query_stream(params).await
     };
-    // let api_add_stream = api.clone();
-    // let add_stream = move |Json(stream): Json<Streams>| async move {
-    //     api_add_stream.add_stream(stream).await
-    // };
+    let api_add_stream = api.clone();
+    let add_stream = move |Json(stream): Json<Streams>| async move {
+        api_add_stream.add_stream(stream).await
+    };
+
+    let api_delete_stream = api.clone();
+    let delete_stream = move |Json(stream): Json<Streams>| async move {
+        api_delete_stream.delete_stream(stream).await
+    };
 
     let api_kick_off = api.clone();
     let kick_off = move |Path(id): Path<String>| async move {
@@ -274,7 +366,8 @@ pub async fn run(
         .route("/", get(root))
         .route("/api/streams", get(query_streams))
         .route("/api/stream", get(query_stream))
-        // .route("/api/stream", put(add_stream))
+        .route("/api/stream", put(add_stream))
+        .route("/api/stream", delete(delete_stream))
         .route("/api/session/:id", delete(kick_off))
         // .route("/api/pulse", get(pulse))
         .layer(ServiceBuilder::new().layer(middleware::from_fn(move |req, next| {

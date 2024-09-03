@@ -1,10 +1,14 @@
+use serde_json::to_writer_pretty;
+use std::io::BufWriter;
+use std::fs::OpenOptions;
+use serde_json::from_reader;
 use crate::auth::AuthAlgorithm;
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
 use std::vec::Vec;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     pub rtmp: Option<RtmpConfig>,
     pub http: Option<HttpConfig>,
@@ -51,7 +55,7 @@ impl Config {
         });
         let streams_config = Some(vec![Streams {
             name: "live/live".to_string(),
-            disabled: false,
+            disabled: Some(false),
             max_bitrate: None,
             on_publish_url: None,
             max_sessions: None,
@@ -70,16 +74,16 @@ impl Config {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Streams{
     pub name: String,
-    pub disabled: bool,
+    pub disabled: Option<bool>,
     pub max_bitrate: Option<usize>,
     pub on_publish_url: Option<String>,
     pub max_sessions: Option<usize>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RtmpConfig {
     pub enabled: bool,
     pub port: Vec<usize>,
@@ -88,20 +92,20 @@ pub struct RtmpConfig {
     pub push: Option<Vec<RtmpPushConfig>>,
     pub auth: Option<AuthConfig>,
 }
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RtmpPullConfig {
     pub enabled: bool,
     pub address: String,
     pub port: u16,
 }
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RtmpPushConfig {
     pub enabled: bool,
     pub address: String,
     pub port: usize,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HttpConfig {
     pub enabled: bool,
     pub port: Vec<usize>,
@@ -118,25 +122,25 @@ pub enum LogLevel {
     Debug,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LogConfig {
     pub level: String,
     pub file: Option<LogFile>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LogFile {
     pub enabled: bool,
     pub rotate: String,
     pub path: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HttpApiConfig {
     pub port: usize,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HttpNotifierConfig {
     pub enabled: bool,
     pub on_publish: Option<String>,
@@ -145,64 +149,41 @@ pub struct HttpNotifierConfig {
     pub on_stop: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct AuthSecretConfig {
     pub key: String,
     pub password: String,
     pub push_password: Option<String>
 }
 
-#[derive(Debug, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct EditAuthConfig{
     pub username: String,
     pub password: String,
 }
 
-#[derive(Debug, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct AuthConfig {
     pub pull_enabled: bool,
     pub push_enabled: Option<bool>,
     pub algorithm: AuthAlgorithm,
 }
 
-use serde_json::from_reader;
-pub fn load_config(path: &str) -> anyhow::Result<Config, anyhow::Error> {
+
+pub fn load_config(path: &str) -> Result<Config, Error> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
     let config: Config = from_reader(reader)?;
     Ok(config)
 }
 
-// pub fn load(cfg_path: &String) -> Result<Config, ConfigError> {
-//     let content = fs::read_to_string(cfg_path)?;
-//     let decoded_config = toml::from_str(&content[..]).unwrap();
-//     Ok(decoded_config)
-// }
+pub fn save_config(path: &str, config: &Config) -> Result<(), Error> {
+    let file = OpenOptions::new().write(true).create(true).truncate(true).open(path)?;
+    let writer = BufWriter::new(file);
+    to_writer_pretty(writer, config)?;
+    Ok(())
+}
 
-// #[test]
-// fn test_toml_parse() {
-//     let path = std::env::current_dir();
-//     match path {
-//         Ok(val) => println!("The current directory is {}\n", val.display()),
-//         Err(err) => println!("{}", err),
-//     }
-//
-//     let str = fs::read_to_string("./src/config/config.json");
-//
-//     match str {
-//         Ok(val) => {
-//             println!("++++++{val}\n");
-//             let decoded: Config = toml::from_str(&val[..]).unwrap();
-//             println!("whole config: {:?}", decoded);
-//             let rtmp = decoded.httpnotify;
-//
-//             if let Some(val) = rtmp {
-//                 println!("++++++{val:?}\n");
-//             }
-//         }
-//         Err(err) => println!("======{err}"),
-//     }
-// }
 
 use {
     failure::{Backtrace, Fail},

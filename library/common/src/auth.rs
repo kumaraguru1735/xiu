@@ -1,11 +1,11 @@
 use indexmap::IndexMap;
 use md5;
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 
 use crate::errors::{AuthError, AuthErrorValue};
 use crate::scanf;
 
-#[derive(Debug, Deserialize, Clone, Default)]
+#[derive(Debug,  Serialize, Deserialize, Clone, Default)]
 pub enum AuthAlgorithm {
     #[default]
     #[serde(rename = "simple")]

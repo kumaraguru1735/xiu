@@ -723,7 +723,7 @@ impl ServerSession {
 
         if let Some(streams) = &config.streams {
             for stream in streams.iter() {
-                if stream.name == format!("{}/{}", self.app_name, self.stream_name) && !stream.disabled {
+                if stream.name == format!("{}/{}", self.app_name, self.stream_name) && !stream.disabled.unwrap_or(false) {
                     println!("App_name/Stream_name matched");
                     if let Some(on_publish_url) = &stream.on_publish_url {
                         println!("On publish url: {:?}", on_publish_url);

@@ -1,18 +1,27 @@
 {
   "rtmp": {
     "enabled": true,
-    "port": [1935],
-    "gop_num": 0
+    "port": [
+      1935
+    ],
+    "gop_num": 0,
+    "pull": null,
+    "push": null,
+    "auth": null
   },
   "http": {
     "enabled": true,
-    "port": [8080],
-    "need_record": false
+    "port": [
+      8080
+    ],
+    "need_record": false,
+    "auth": null
   },
-  "httpflv_auth": {
-    "pull_enabled": true,
-    "algorithm": "simple"
+  "edit_auth": {
+    "username": "admin",
+    "password": "admin"
   },
+  "api": null,
   "httpnotify": {
     "enabled": false,
     "on_publish": "http://localhost:3001/on_publish",
@@ -22,33 +31,48 @@
   },
   "authsecret": {
     "key": "123456",
-    "password": "123456"
-  },
-  "edit_auth": {
-    "username": "admin",
-    "password": "admin"
-  },
-  "log": {
-    "level": "debug"
+    "password": "123456",
+    "push_password": null
   },
   "streams": [
     {
       "name": "live/test",
       "disabled": false,
-      "on_publish_url": "https://api.onecloudlive.in/api/v2/handler/check-stream"
+      "max_bitrate": null,
+      "on_publish_url": "https://api.onecloudlive.in/api/v2/handler/check-stream",
+      "max_sessions": null
     },
     {
       "name": "advika/advika",
       "disabled": false,
-      "on_publish_url": "https://api.onecloudlive.in/api/v2/handler/check-stream"
+      "max_bitrate": null,
+      "on_publish_url": "https://api.onecloudlive.in/api/v2/handler/check-stream",
+      "max_sessions": null
     },
     {
       "name": "live/test2",
-      "disabled": true
+      "disabled": true,
+      "max_bitrate": null,
+      "on_publish_url": null,
+      "max_sessions": null
     },
     {
       "name": "live/test3",
-      "disabled": false
+      "disabled": false,
+      "max_bitrate": null,
+      "on_publish_url": null,
+      "max_sessions": null
+    },
+    {
+      "name": "demo/demo",
+      "disabled": null,
+      "max_bitrate": 3097,
+      "on_publish_url": null,
+      "max_sessions": null
     }
-  ]
+  ],
+  "log": {
+    "level": "debug",
+    "file": null
+  }
 }

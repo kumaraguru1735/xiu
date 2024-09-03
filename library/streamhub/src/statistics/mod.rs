@@ -95,7 +95,6 @@ pub struct StatisticSubscriber {
     pub start_time: DateTime<Local>,
     pub remote_address: String,
     pub sub_type: SubscribeType,
-    pub user_agent: String,
     /*used for caculate the send_bitrate*/
     #[serde(skip_serializing)]
     pub send_bytes: usize,
