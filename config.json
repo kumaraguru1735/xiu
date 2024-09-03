@@ -36,37 +36,9 @@
   },
   "streams": [
     {
-      "name": "live/test",
-      "disabled": false,
-      "max_bitrate": null,
-      "on_publish_url": "https://api.onecloudlive.in/api/v2/handler/check-stream",
-      "max_sessions": null
-    },
-    {
-      "name": "advika/advika",
-      "disabled": false,
-      "max_bitrate": null,
-      "on_publish_url": "https://api.onecloudlive.in/api/v2/handler/check-stream",
-      "max_sessions": null
-    },
-    {
-      "name": "live/test2",
-      "disabled": true,
-      "max_bitrate": null,
-      "on_publish_url": null,
-      "max_sessions": null
-    },
-    {
-      "name": "live/test3",
-      "disabled": false,
-      "max_bitrate": null,
-      "on_publish_url": null,
-      "max_sessions": null
-    },
-    {
       "name": "demo/demo",
       "disabled": null,
-      "max_bitrate": 3097,
+      "max_bitrate": 3098,
       "on_publish_url": null,
       "max_sessions": null
     }

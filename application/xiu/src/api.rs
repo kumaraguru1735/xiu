@@ -151,8 +151,13 @@ impl ApiService {
     }
 
 
-    pub async fn add_stream(&self, stream: Streams) -> Json<ApiResponse<Value>> {
+    pub async fn add_stream(&self, mut stream: Streams) -> Json<ApiResponse<Value>> {
         let config_path = "config.json";
+
+        // Ensure stream.name follows the correct format
+        if !stream.name.contains('/') {
+            stream.name = format!("static/{}", stream.name);
+        }
 
         // Load existing config
         let mut config = match load_config(config_path) {
@@ -195,8 +200,13 @@ impl ApiService {
         }
     }
 
-    pub async fn delete_stream(&self, del_stream: Streams) -> Json<ApiResponse<Value>> {
+    pub async fn delete_stream(&self, mut del_stream: Streams) -> Json<ApiResponse<Value>> {
         let config_path = "config.json";
+
+        // Ensure stream.name follows the correct format
+        if !del_stream.name.contains('/') {
+            del_stream.name = format!("static/{}", del_stream.name);
+        }
 
         // Load existing config
         let mut config = match load_config(config_path) {
